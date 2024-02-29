@@ -58,30 +58,29 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUrl(w http.ResponseWriter, r *http.Request) {
-	//fmt.Println("Что-то получили")
+
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
 		return
 	}
 
-	//fmt.Println("Проверяем что это" + string(req))
 	url, err := urlValidator(string(req))
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	//fmt.Println("Сохраняем")
+
 	id, err := urlSaver(url)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	//fmt.Println("Отвечаем")
-	w.Header().Set("Content-Type", "text/plain")
 
-	_, err = w.Write([]byte("http://localhost:8080/" + id))
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write([]byte("http://localhost:8080/" + id))
+
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")
 		return
