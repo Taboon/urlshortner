@@ -51,7 +51,7 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 
 	if v, ok := urls[path]; ok {
 		w.Header().Set("Location", v.url)
-		w.WriteHeader(http.StatusMovedPermanently)
+		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -81,6 +81,7 @@ func getUrl(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	_, err = w.Write([]byte("http://localhost:8080/" + id))
+	w.WriteHeader(http.StatusCreated)
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")
 		return
@@ -97,7 +98,6 @@ func urlValidator(url string) (string, error) {
 		return "", errors.New("is not url")
 	}
 
-	fmt.Println("Вернули урл")
 	return url, nil
 }
 
