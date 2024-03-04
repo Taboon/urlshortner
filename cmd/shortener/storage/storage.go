@@ -17,9 +17,6 @@ type SafeMap struct {
 }
 
 var _ Repositories = (*TempStorage)(nil)
-
-// var urls = make(map[string]UrlData)
-// var slru = make(map[UrlData]string)
 var sm = SafeMap{}
 
 func (s TempStorage) AddUrl(data UrlData) error {
