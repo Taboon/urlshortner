@@ -12,8 +12,9 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	if v, ok := stor.CheckId(path); ok {
+	if v, ok := Stor.CheckId(path); ok {
 		w.Header().Set("Location", v.Url)
+		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
@@ -23,6 +24,7 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 func getUrl(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
+	fmt.Println(string(req))
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
 		return
