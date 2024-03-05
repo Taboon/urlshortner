@@ -43,12 +43,12 @@ func urlValidator(url string) (string, error) {
 }
 
 func urlSaver(url string) (string, error) {
-	if _, ok := Stor.CheckUrl(url); ok {
+	if _, ok := Stor.CheckURL(url); ok {
 		return "", errors.New("url already exist")
 	} else {
 		id := generateID()
-		urlObj := storage.UrlData{url, id}
-		err := Stor.AddUrl(urlObj)
+		urlObj := storage.URLData{url, id}
+		err := Stor.AddURL(urlObj)
 		if err != nil {
 			return "", err
 		}
@@ -68,7 +68,7 @@ func generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		if _, ok := Stor.CheckId(string(b)); ok {
+		if _, ok := Stor.CheckID(string(b)); ok {
 			continue
 		}
 		ok = false

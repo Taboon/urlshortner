@@ -1,10 +1,10 @@
 package storage
 
 type Repositories interface {
-	AddUrl(data UrlData) error
-	CheckId(id string) (UrlData, bool)
-	CheckUrl(url string) (UrlData, bool)
-	RemoveUrl(data UrlData) error
+	AddURL(data URLData) error
+	CheckID(id string) (URLData, bool)
+	CheckURL(url string) (URLData, bool)
+	RemoveURL(data URLData) error
 }
 
 type TempStorage struct {

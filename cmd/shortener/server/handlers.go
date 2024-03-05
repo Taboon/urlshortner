@@ -12,8 +12,8 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	if v, ok := Stor.CheckId(path); ok {
-		w.Header().Set("Location", v.Url)
+	if v, ok := Stor.CheckID(path); ok {
+		w.Header().Set("Location", v.URL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {

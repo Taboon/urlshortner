@@ -10,11 +10,11 @@ import (
 )
 
 func TestSendUrl(t *testing.T) {
-	urlMock := storage.UrlData{
-		Url: "http://ya.ru",
-		Id:  "AAAAaaaa",
+	urlMock := storage.URLData{
+		URL: "http://ya.ru",
+		ID:  "AAAAaaaa",
 	}
-	Stor.AddUrl(urlMock)
+	Stor.AddURL(urlMock)
 
 	tests := []struct {
 		name         string
@@ -23,7 +23,7 @@ func TestSendUrl(t *testing.T) {
 		expectedCode int
 		expectedURL  string
 	}{
-		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedURL: urlMock.Url},
+		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedURL: urlMock.URL},
 		{name: "test2", method: http.MethodGet, path: "/", expectedCode: http.StatusBadRequest, expectedURL: ""},
 		{name: "test3", method: http.MethodGet, path: "/aAaaaAAa", expectedCode: http.StatusBadRequest, expectedURL: ""},
 	}

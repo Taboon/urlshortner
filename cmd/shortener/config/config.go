@@ -8,18 +8,18 @@ import (
 
 type Config struct {
 	LocalAddress LocalAddress
-	BaseUrl      string
+	BaseURL      string
 }
 
 type LocalAddress struct {
-	Ip   string
+	IP   string
 	Port int
 }
 
 // String должен уметь сериализовать переменную типа в строку.
 func (l *LocalAddress) String() string {
 	var address = []string{
-		l.Ip, fmt.Sprint(l.Port),
+		l.IP, fmt.Sprint(l.Port),
 	}
 	return fmt.Sprint(strings.Join(address, ":"))
 }
@@ -28,7 +28,7 @@ func (l *LocalAddress) String() string {
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *LocalAddress) Set(flagValue string) error {
 	address := strings.Split(flagValue, ":")
-	l.Ip = address[0]
+	l.IP = address[0]
 	port, err := strconv.Atoi(address[1])
 
 	if err != nil {
@@ -39,13 +39,13 @@ func (l *LocalAddress) Set(flagValue string) error {
 }
 
 func (c *Config) Url() string {
-	return c.LocalAddress.Ip + ":" + strconv.Itoa(c.LocalAddress.Port)
+	return c.LocalAddress.IP + ":" + strconv.Itoa(c.LocalAddress.Port)
 }
 
 var ConfigGlobal = Config{
 	LocalAddress: LocalAddress{
-		Ip:   "127.0.0.1",
+		IP:   "127.0.0.1",
 		Port: 8080,
 	},
-	BaseUrl: "localhost",
+	BaseURL: "localhost",
 }
