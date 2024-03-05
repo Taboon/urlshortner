@@ -14,7 +14,7 @@ var Stor storage.TempStorage
 
 func Run() error {
 	parseFlags()
-	err := http.ListenAndServe(conf.Url(), URLRouter())
+	err := http.ListenAndServe(conf.URL(), URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}

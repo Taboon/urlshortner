@@ -16,5 +16,5 @@ func parseFlags() {
 	flag.Var(&localAddress, "a", "address to start server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
-	fmt.Println("Server started on: " + conf.Url())
+	fmt.Println("Server started on: " + conf.URL())
 }
