@@ -55,10 +55,10 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-			if resp.StatusCode == 200 {
-				//fmt.Println("Сравниваем:" + resp. + " и " + tt.expectedURL)
-				//require.Equal(t, resp.Header.Get("Host"), tt.expectedURL)
-			}
+			//if resp.StatusCode == 200 {
+			//	//fmt.Println("Сравниваем:" + resp. + " и " + tt.expectedURL)
+			//	//require.Equal(t, resp.Header.Get("Host"), tt.expectedURL)
+			//}
 		})
 	}
 }
