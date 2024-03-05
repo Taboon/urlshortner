@@ -46,7 +46,7 @@ func urlSaver(url string) (string, error) {
 	if _, ok := Stor.CheckUrl(url); ok {
 		return "", errors.New("url already exist")
 	} else {
-		id := generateId()
+		id := generateID()
 		urlObj := storage.UrlData{url, id}
 		err := Stor.AddUrl(urlObj)
 		if err != nil {
@@ -56,7 +56,7 @@ func urlSaver(url string) (string, error) {
 	}
 }
 
-func generateId() string {
+func generateID() string {
 	ok := true
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
