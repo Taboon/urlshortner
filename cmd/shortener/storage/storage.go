@@ -31,7 +31,7 @@ func (s TempStorage) CheckID(id string) (URLData, bool) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	// Проверяем, что map был инициализирован
+	// Проверяем, что map был инициализирова н
 	if sm.mapStor == nil {
 		sm.mapStor = make(map[string]URLData)
 	}
