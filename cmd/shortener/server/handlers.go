@@ -25,7 +25,6 @@ func sendURL(w http.ResponseWriter, r *http.Request) {
 func getURL(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
-	fmt.Println(string(req))
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
 		return
