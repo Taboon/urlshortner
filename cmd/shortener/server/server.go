@@ -24,8 +24,8 @@ func Run() error {
 func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", sendUrl)
-	r.Post("/", getUrl)
+	r.Get("/{id}", sendURL)
+	r.Post("/", getURL)
 	return r
 }
 

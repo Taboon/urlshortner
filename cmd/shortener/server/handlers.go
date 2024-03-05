@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func sendUrl(w http.ResponseWriter, r *http.Request) {
+func sendURL(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
@@ -21,7 +21,7 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUrl(w http.ResponseWriter, r *http.Request) {
+func getURL(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
 	fmt.Println(string(req))

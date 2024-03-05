@@ -29,7 +29,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	// Создаем тестовый сервер
-	server := httptest.NewServer(http.HandlerFunc(sendUrl))
+	server := httptest.NewServer(http.HandlerFunc(sendURL))
 	defer server.Close()
 
 	// Создаем HTTP клиент для выполнения запросов к тестовому серверу
@@ -78,7 +78,7 @@ func Test_getUrl(t *testing.T) {
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(getUrl))
+	server := httptest.NewServer(http.HandlerFunc(getURL))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
