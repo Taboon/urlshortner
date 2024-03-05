@@ -21,11 +21,11 @@ func TestSendUrl(t *testing.T) {
 		method       string
 		path         string
 		expectedCode int
-		expectedUrl  string
+		expectedURL  string
 	}{
-		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedUrl: urlMock.Url},
-		{name: "test2", method: http.MethodGet, path: "/", expectedCode: http.StatusBadRequest, expectedUrl: ""},
-		{name: "test3", method: http.MethodGet, path: "/aAaaaAAa", expectedCode: http.StatusBadRequest, expectedUrl: ""},
+		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedURL: urlMock.Url},
+		{name: "test2", method: http.MethodGet, path: "/", expectedCode: http.StatusBadRequest, expectedURL: ""},
+		{name: "test3", method: http.MethodGet, path: "/aAaaaAAa", expectedCode: http.StatusBadRequest, expectedURL: ""},
 	}
 
 	// Создаем тестовый сервер
@@ -55,10 +55,10 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-			//if resp.StatusCode == 307 {
-			//	fmt.Println("Сравниваем:" + resp.Header.Get("Location") + " и " + tt.expectedUrl)
-			//	require.Equal(t, resp.Header.Get("Location"), tt.expectedUrl)
-			//}
+			if resp.StatusCode == 200 {
+				//fmt.Println("Сравниваем:" + resp. + " и " + tt.expectedURL)
+				//require.Equal(t, resp.Header.Get("Host"), tt.expectedURL)
+			}
 		})
 	}
 }
