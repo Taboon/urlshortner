@@ -19,7 +19,7 @@ type LocalAddress struct {
 // String должен уметь сериализовать переменную типа в строку.
 func (l *LocalAddress) String() string {
 	var address = []string{
-		l.Ip, string(l.Port),
+		l.Ip, fmt.Sprint(l.Port),
 	}
 	return fmt.Sprint(strings.Join(address, ":"))
 }
