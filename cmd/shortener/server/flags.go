@@ -9,7 +9,7 @@ import (
 func parseFlags() {
 	// регистрируем переменную flagRunAddr
 	// как аргумент -a со значением :8080 по умолчанию
-	flag.StringVar(&config.ConfigGlobal.BaseURL, "b", "localhost:8080", "address to make short url")
+	flag.StringVar(&config.ConfigGlobal.BaseURL, "b", "http://127.0.0.1:8080", "address to make short url")
 	flag.Var(&config.ConfigGlobal.LocalAddress, "a", "address to start server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
