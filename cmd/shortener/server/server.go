@@ -13,7 +13,8 @@ import (
 var Stor storage.TempStorage
 
 func Run() error {
-	err := http.ListenAndServe(":8080", UrlRouter())
+	parseFlags()
+	err := http.ListenAndServe(conf.Url(), UrlRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}
