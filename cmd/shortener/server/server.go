@@ -47,7 +47,7 @@ func urlSaver(url string) (string, error) {
 		return "", errors.New("url already exist")
 	} else {
 		id := generateID()
-		urlObj := storage.URLData{url, id}
+		urlObj := storage.URLData{URL: url, ID: id}
 		err := Stor.AddURL(urlObj)
 		if err != nil {
 			return "", err
