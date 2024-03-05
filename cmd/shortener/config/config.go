@@ -38,7 +38,7 @@ func (l *LocalAddress) Set(flagValue string) error {
 	return nil
 }
 
-func (c *Config) Url() string {
+func (c *Config) URL() string {
 	return c.LocalAddress.IP + ":" + strconv.Itoa(c.LocalAddress.Port)
 }
 
