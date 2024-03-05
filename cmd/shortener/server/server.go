@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/Taboon/urlshortner/cmd/shortener/config"
 	"github.com/Taboon/urlshortner/cmd/shortener/storage"
 	"github.com/go-chi/chi/v5"
 	"math/rand"
@@ -14,7 +15,7 @@ var Stor storage.TempStorage
 
 func Run() error {
 	parseFlags()
-	err := http.ListenAndServe(conf.URL(), URLRouter())
+	err := http.ListenAndServe(config.ConfigGlobal.URL(), URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}

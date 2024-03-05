@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/Taboon/urlshortner/cmd/shortener/config"
 	"io"
 	"net/http"
 	"strings"
@@ -44,7 +45,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte("http://localhost:8080/" + id))
+	_, err = w.Write([]byte(config.ConfigGlobal.BaseURL + "/" + id))
 
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")
