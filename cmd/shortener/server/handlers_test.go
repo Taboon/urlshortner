@@ -10,26 +10,26 @@ import (
 )
 
 func TestSendUrl(t *testing.T) {
-	urlMock := storage.UrlData{
-		Url: "http://ya.ru",
-		Id:  "AAAAaaaa",
+	urlMock := storage.URLData{
+		URL: "http://ya.ru",
+		ID:  "AAAAaaaa",
 	}
-	Stor.AddUrl(urlMock)
+	Stor.AddURL(urlMock)
 
 	tests := []struct {
 		name         string
 		method       string
 		path         string
 		expectedCode int
-		expectedUrl  string
+		expectedURL  string
 	}{
-		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedUrl: urlMock.Url},
-		{name: "test2", method: http.MethodGet, path: "/", expectedCode: http.StatusBadRequest, expectedUrl: ""},
-		{name: "test3", method: http.MethodGet, path: "/aAaaaAAa", expectedCode: http.StatusBadRequest, expectedUrl: ""},
+		{name: "test1", method: http.MethodGet, path: "/AAAAaaaa", expectedCode: http.StatusOK, expectedURL: urlMock.URL},
+		{name: "test2", method: http.MethodGet, path: "/", expectedCode: http.StatusBadRequest, expectedURL: ""},
+		{name: "test3", method: http.MethodGet, path: "/aAaaaAAa", expectedCode: http.StatusBadRequest, expectedURL: ""},
 	}
 
 	// Создаем тестовый сервер
-	server := httptest.NewServer(http.HandlerFunc(sendUrl))
+	server := httptest.NewServer(http.HandlerFunc(sendURL))
 	defer server.Close()
 
 	// Создаем HTTP клиент для выполнения запросов к тестовому серверу
@@ -55,9 +55,9 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-			//if resp.StatusCode == 307 {
-			//	fmt.Println("Сравниваем:" + resp.Header.Get("Location") + " и " + tt.expectedUrl)
-			//	require.Equal(t, resp.Header.Get("Location"), tt.expectedUrl)
+			//if resp.StatusCode == 200 {
+			//	//fmt.Println("Сравниваем:" + resp. + " и " + tt.expectedURL)
+			//	//require.Equal(t, resp.Header.Get("Host"), tt.expectedURL)
 			//}
 		})
 	}
@@ -78,7 +78,7 @@ func Test_getUrl(t *testing.T) {
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(getUrl))
+	server := httptest.NewServer(http.HandlerFunc(getURL))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {

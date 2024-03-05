@@ -2,18 +2,19 @@ package server
 
 import (
 	"fmt"
+	"github.com/Taboon/urlshortner/cmd/shortener/config"
 	"io"
 	"net/http"
 	"strings"
 )
 
-func sendUrl(w http.ResponseWriter, r *http.Request) {
+func sendURL(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	if v, ok := Stor.CheckId(path); ok {
-		w.Header().Set("Location", v.Url)
+	if v, ok := Stor.CheckID(path); ok {
+		w.Header().Set("Location", v.URL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	} else {
@@ -21,10 +22,9 @@ func sendUrl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUrl(w http.ResponseWriter, r *http.Request) {
+func getURL(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
-	fmt.Println(string(req))
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
 		return
@@ -44,7 +44,7 @@ func getUrl(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte("http://localhost:8080/" + id))
+	_, err = w.Write([]byte(config.ConfigGlobal.BaseURL + "/" + id))
 
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")

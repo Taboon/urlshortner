@@ -5,21 +5,21 @@ import (
 	"sync"
 )
 
-type UrlData struct {
-	Url string
-	Id  string
+type URLData struct {
+	URL string
+	ID  string
 }
 
 type SafeMap struct {
 	mu             sync.Mutex
-	mapStor        map[string]UrlData
-	reverseMapStor map[UrlData]string
+	mapStor        map[string]URLData
+	reverseMapStor map[URLData]string
 }
 
 var _ Repositories = (*TempStorage)(nil)
 var sm = SafeMap{}
 
-func (s TempStorage) AddUrl(data UrlData) error {
+func (s TempStorage) AddURL(data URLData) error {
 	err := sm.Write(data)
 	if err != nil {
 		return err
@@ -27,46 +27,46 @@ func (s TempStorage) AddUrl(data UrlData) error {
 	return nil
 }
 
-func (s TempStorage) CheckId(id string) (UrlData, bool) {
+func (s TempStorage) CheckID(id string) (URLData, bool) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
-	// Проверяем, что map был инициализирован
+	// Проверяем, что map был инициализирова н
 	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]UrlData)
+		sm.mapStor = make(map[string]URLData)
 	}
 	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[UrlData]string)
+		sm.reverseMapStor = make(map[URLData]string)
 	}
 
 	v, ok := sm.mapStor[id]
 	if ok {
 		return v, true
 	}
-	return UrlData{}, false
+	return URLData{}, false
 }
 
-func (s TempStorage) CheckUrl(url string) (UrlData, bool) {
+func (s TempStorage) CheckURL(url string) (URLData, bool) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
 	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]UrlData)
+		sm.mapStor = make(map[string]URLData)
 	}
 	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[UrlData]string)
+		sm.reverseMapStor = make(map[URLData]string)
 	}
 
 	for _, v := range sm.mapStor {
-		if v.Url == url {
+		if v.URL == url {
 			return v, true
 		}
 	}
-	return UrlData{}, false
+	return URLData{}, false
 }
 
-func (s TempStorage) RemoveUrl(data UrlData) error {
+func (s TempStorage) RemoveURL(data URLData) error {
 	err := sm.Remove(data)
 	if err != nil {
 		return err
@@ -74,20 +74,20 @@ func (s TempStorage) RemoveUrl(data UrlData) error {
 	return nil
 }
 
-func (sm *SafeMap) Write(url UrlData) error {
+func (sm *SafeMap) Write(url URLData) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
 	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]UrlData)
+		sm.mapStor = make(map[string]URLData)
 	}
 	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[UrlData]string)
+		sm.reverseMapStor = make(map[URLData]string)
 	}
 
 	// Пишем данные в map
-	_, ok := sm.mapStor[url.Id]
+	_, ok := sm.mapStor[url.ID]
 	if ok {
 		err := errors.New("id exist")
 		return err
@@ -97,31 +97,31 @@ func (sm *SafeMap) Write(url UrlData) error {
 			err := errors.New("url exist")
 			return err
 		} else {
-			sm.mapStor[url.Id] = url
-			sm.reverseMapStor[url] = url.Id
+			sm.mapStor[url.ID] = url
+			sm.reverseMapStor[url] = url.ID
 			return nil
 		}
 	}
 }
 
-func (sm *SafeMap) Remove(url UrlData) error {
+func (sm *SafeMap) Remove(url URLData) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
 	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]UrlData)
+		sm.mapStor = make(map[string]URLData)
 	}
 	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[UrlData]string)
+		sm.reverseMapStor = make(map[URLData]string)
 	}
 
 	// Удаляем данные из map
-	_, ok := sm.mapStor[url.Id]
+	_, ok := sm.mapStor[url.ID]
 	if ok {
 		_, ok := sm.reverseMapStor[url]
 		if ok {
-			delete(sm.mapStor, url.Id)
+			delete(sm.mapStor, url.ID)
 			delete(sm.reverseMapStor, url)
 			return nil
 		}
