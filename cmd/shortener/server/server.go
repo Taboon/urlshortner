@@ -14,14 +14,14 @@ var Stor storage.TempStorage
 
 func Run() error {
 	parseFlags()
-	err := http.ListenAndServe(conf.Url(), UrlRouter())
+	err := http.ListenAndServe(conf.Url(), URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}
 	return nil
 }
 
-func UrlRouter() chi.Router {
+func URLRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/{id}", sendUrl)
