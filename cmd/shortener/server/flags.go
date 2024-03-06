@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Taboon/urlshortner/cmd/shortener/config"
+	"os"
 )
 
 func parseFlags() {
@@ -13,6 +14,15 @@ func parseFlags() {
 	flag.Var(&config.ConfigGlobal.LocalAddress, "a", "address to start server")
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
+	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
+		err := config.ConfigGlobal.LocalAddress.Set(envRunAddr)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
+		config.ConfigGlobal.BaseURL = envBasePath
+	}
 	fmt.Println("Server started on: " + config.ConfigGlobal.URL())
 	fmt.Println("Base URL: " + config.ConfigGlobal.BaseURL)
 }
