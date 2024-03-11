@@ -3,34 +3,38 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/cmd/shortener/config"
-	"github.com/Taboon/urlshortner/cmd/shortener/storage"
-	"github.com/go-chi/chi/v5"
 	"math/rand"
 	"net/http"
 	"strings"
+
+	"github.com/Taboon/urlshortner/cmd/shortener/storage"
+	"github.com/Taboon/urlshortner/config"
+	"github.com/go-chi/chi/v5"
 )
 
-var Stor storage.TempStorage
+type Server struct {
+	Conf config.Config
+	Stor storage.Repositories
+}
 
-func Run() error {
-	parseFlags()
-	err := http.ListenAndServe(config.ConfigGlobal.URL(), URLRouter())
+func (s *Server) Run() error {
+
+	err := http.ListenAndServe(s.Conf.URL(), s.URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}
 	return nil
 }
 
-func URLRouter() chi.Router {
+func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", sendURL)
-	r.Post("/", getURL)
+	r.Get("/{id}", s.sendURL)
+	r.Post("/", s.getURL)
 	return r
 }
 
-func urlValidator(url string) (string, error) {
+func (s *Server) urlValidator(url string) (string, error) {
 	url = strings.TrimSpace(url)
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		fmt.Println("Это не URL - не указан http:// или https://")
@@ -43,13 +47,13 @@ func urlValidator(url string) (string, error) {
 	return url, nil
 }
 
-func urlSaver(url string) (string, error) {
-	if _, ok := Stor.CheckURL(url); ok {
+func (s *Server) urlSaver(url string) (string, error) {
+	if _, ok := s.Stor.CheckURL(url); ok {
 		return "", errors.New("url already exist")
 	} else {
-		id := generateID()
+		id := s.generateID()
 		urlObj := storage.URLData{URL: url, ID: id}
-		err := Stor.AddURL(urlObj)
+		err := s.Stor.AddURL(urlObj)
 		if err != nil {
 			return "", err
 		}
@@ -57,7 +61,7 @@ func urlSaver(url string) (string, error) {
 	}
 }
 
-func generateID() string {
+func (s *Server) generateID() string {
 	ok := true
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
@@ -69,7 +73,7 @@ func generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		if _, ok := Stor.CheckID(string(b)); ok {
+		if _, ok := s.Stor.CheckID(string(b)); ok {
 			continue
 		}
 		ok = false

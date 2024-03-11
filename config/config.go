@@ -1,23 +1,24 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
 
 type Config struct {
-	LocalAddress LocalAddress
-	BaseURL      string
+	LocalAddress Address
+	BaseURL      Address
 }
 
-type LocalAddress struct {
+type Address struct {
 	IP   string
 	Port int
 }
 
 // String должен уметь сериализовать переменную типа в строку.
-func (l *LocalAddress) String() string {
+func (l *Address) String() string {
 	var address = []string{
 		l.IP, fmt.Sprint(l.Port),
 	}
@@ -26,9 +27,18 @@ func (l *LocalAddress) String() string {
 
 // Set связывает переменную типа со значением флага
 // и устанавливает правила парсинга для пользовательского типа.
-func (l *LocalAddress) Set(flagValue string) error {
+func (l *Address) Set(flagValue string) error {
 	address := strings.Split(flagValue, ":")
+	if address[0] == "" {
+		err := errors.New("Wrong adress")
+		return err
+	}
 	l.IP = address[0]
+
+	if address[1] == "" {
+		err := errors.New("Wrong port")
+		return err
+	}
 	port, err := strconv.Atoi(address[1])
 
 	if err != nil {
@@ -42,10 +52,10 @@ func (c *Config) URL() string {
 	return c.LocalAddress.IP + ":" + strconv.Itoa(c.LocalAddress.Port)
 }
 
-var ConfigGlobal = Config{
-	LocalAddress: LocalAddress{
-		IP:   "127.0.0.1",
-		Port: 8080,
-	},
-	BaseURL: "",
-}
+//var ConfigGlobal = Config{
+//	LocalAddress: LocalAddress{
+//		IP:   "127.0.0.1",
+//		Port: 8080,
+//	},
+//	BaseURL: "",
+//}

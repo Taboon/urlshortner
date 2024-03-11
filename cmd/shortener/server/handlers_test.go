@@ -1,12 +1,15 @@
 package server
 
 import (
-	"github.com/Taboon/urlshortner/cmd/shortener/storage"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Taboon/urlshortner/cmd/shortener/storage"
+	"github.com/Taboon/urlshortner/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSendUrl(t *testing.T) {
@@ -14,7 +17,26 @@ func TestSendUrl(t *testing.T) {
 		URL: "http://ya.ru",
 		ID:  "AAAAaaaa",
 	}
-	Stor.AddURL(urlMock)
+
+	s := Server{
+		Conf: config.Config{
+			LocalAddress: config.Address{
+				"127.0.0.1",
+				8080,
+			},
+			BaseURL: config.Address{
+				"127.0.0.1",
+				8080,
+			},
+		},
+		Stor: storage.TempStorage{},
+	}
+
+	err := s.Stor.AddURL(urlMock)
+	if err != nil {
+		fmt.Println("Error add URL mock")
+		return
+	}
 
 	tests := []struct {
 		name         string
@@ -29,7 +51,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	// Создаем тестовый сервер
-	server := httptest.NewServer(http.HandlerFunc(sendURL))
+	server := httptest.NewServer(http.HandlerFunc(s.sendURL))
 	defer server.Close()
 
 	// Создаем HTTP клиент для выполнения запросов к тестовому серверу
@@ -78,7 +100,21 @@ func Test_getUrl(t *testing.T) {
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
 	}
 
-	server := httptest.NewServer(http.HandlerFunc(getURL))
+	s := Server{
+		Conf: config.Config{
+			LocalAddress: config.Address{
+				"127.0.0.1",
+				8080,
+			},
+			BaseURL: config.Address{
+				"127.0.0.1",
+				8080,
+			},
+		},
+		Stor: storage.TempStorage{},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(s.getURL))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {

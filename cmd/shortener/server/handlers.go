@@ -2,18 +2,17 @@ package server
 
 import (
 	"fmt"
-	"github.com/Taboon/urlshortner/cmd/shortener/config"
 	"io"
 	"net/http"
 	"strings"
 )
 
-func sendURL(w http.ResponseWriter, r *http.Request) {
+func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	if v, ok := Stor.CheckID(path); ok {
+	if v, ok := s.Stor.CheckID(path); ok {
 		w.Header().Set("Location", v.URL)
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusTemporaryRedirect)
@@ -22,7 +21,7 @@ func sendURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getURL(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -30,13 +29,13 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := urlValidator(string(req))
+	url, err := s.urlValidator(string(req))
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := urlSaver(url)
+	id, err := s.urlSaver(url)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
@@ -44,7 +43,7 @@ func getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(config.ConfigGlobal.BaseURL + "/" + id))
+	_, err = w.Write([]byte(s.Conf.BaseURL.String() + "/" + id))
 
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")
