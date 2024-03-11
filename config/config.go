@@ -30,13 +30,13 @@ func (l *Address) String() string {
 func (l *Address) Set(flagValue string) error {
 	address := strings.Split(flagValue, ":")
 	if address[0] == "" {
-		err := errors.New("Wrong adress")
+		err := errors.New("wrong adress")
 		return err
 	}
 	l.IP = address[0]
 
 	if address[1] == "" {
-		err := errors.New("Wrong port")
+		err := errors.New("wrong port")
 		return err
 	}
 	port, err := strconv.Atoi(address[1])

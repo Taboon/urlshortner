@@ -21,12 +21,12 @@ func TestSendUrl(t *testing.T) {
 	s := Server{
 		Conf: config.Config{
 			LocalAddress: config.Address{
-				"127.0.0.1",
-				8080,
+				IP:   "127.0.0.1",
+				Port: 8080,
 			},
 			BaseURL: config.Address{
-				"127.0.0.1",
-				8080,
+				IP:   "127.0.0.1",
+				Port: 8080,
 			},
 		},
 		Stor: storage.TempStorage{},
@@ -103,12 +103,12 @@ func Test_getUrl(t *testing.T) {
 	s := Server{
 		Conf: config.Config{
 			LocalAddress: config.Address{
-				"127.0.0.1",
-				8080,
+				IP:   "127.0.0.1",
+				Port: 8080,
 			},
 			BaseURL: config.Address{
-				"127.0.0.1",
-				8080,
+				IP:   "127.0.0.1",
+				Port: 8080,
 			},
 		},
 		Stor: storage.TempStorage{},
