@@ -46,7 +46,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(s.Conf.BaseURL.String() + "/" + id))
+	_, err = w.Write([]byte(httpPrefix + s.Conf.BaseURL.String() + "/" + id))
 
 	if err != nil {
 		fmt.Println("Ошибка отправки ответа")
