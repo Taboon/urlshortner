@@ -3,19 +3,24 @@ package server
 import (
 	"errors"
 	"fmt"
+	storage2 "github.com/Taboon/urlshortner/internal/storage"
 	"math/rand"
 	"net/http"
 	"strings"
 
-	"github.com/Taboon/urlshortner/cmd/shortener/storage"
 	"github.com/Taboon/urlshortner/config"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
 	Conf config.Config
-	Stor storage.Repositories
+	Stor storage2.Repositories
 }
+
+const (
+	httpPrefix  = "http://"
+	httpsPrefix = "https://"
+)
 
 func (s *Server) Run() error {
 
@@ -36,7 +41,7 @@ func (s *Server) URLRouter() chi.Router {
 
 func (s *Server) urlValidator(url string) (string, error) {
 	url = strings.TrimSpace(url)
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+	if !strings.HasPrefix(url, httpPrefix) && !strings.HasPrefix(url, httpsPrefix) {
 		fmt.Println("Это не URL - не указан http:// или https://")
 		return "", errors.New("URL должен начинаться с http:// или https://")
 	}
@@ -52,7 +57,7 @@ func (s *Server) urlSaver(url string) (string, error) {
 		return "", errors.New("url already exist")
 	} else {
 		id := s.generateID()
-		urlObj := storage.URLData{URL: url, ID: id}
+		urlObj := storage2.URLData{URL: url, ID: id}
 		err := s.Stor.AddURL(urlObj)
 		if err != nil {
 			return "", err

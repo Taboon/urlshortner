@@ -12,13 +12,16 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	if v, ok := s.Stor.CheckID(path); ok {
-		w.Header().Set("Location", v.URL)
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusTemporaryRedirect)
-	} else {
+	v, ok := s.Stor.CheckID(path)
+	if ok == false {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+
+	w.Header().Set("Location", v.URL)
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+
 }
 
 func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {

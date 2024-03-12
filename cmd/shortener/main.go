@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/Taboon/urlshortner/cmd/shortener/storage"
+	"github.com/Taboon/urlshortner/config"
+	"github.com/Taboon/urlshortner/internal/server"
+	"github.com/Taboon/urlshortner/internal/storage"
 	"log"
-
-	"github.com/Taboon/urlshortner/cmd/shortener/server"
 )
 
 func main() {
 	stor := storage.TempStorage{}
 	serv := server.Server{}
-	conf, err := serv.ParseFlags()
+	conf, err := config.ParseFlags()
 	if err != nil {
 		log.Fatal(err)
 	}

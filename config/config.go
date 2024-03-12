@@ -2,7 +2,9 @@ package config
 
 import (
 	"errors"
+	"flag"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -52,10 +54,39 @@ func (c *Config) URL() string {
 	return c.LocalAddress.IP + ":" + strconv.Itoa(c.LocalAddress.Port)
 }
 
-//var ConfigGlobal = Config{
-//	LocalAddress: LocalAddress{
-//		IP:   "127.0.0.1",
-//		Port: 8080,
-//	},
-//	BaseURL: "",
-//}
+func ParseFlags() (Config, error) {
+	conf := Config{
+		LocalAddress: Address{
+			"127.0.0.1",
+			8080,
+		},
+		BaseURL: Address{
+			"127.0.0.1",
+			8080,
+		},
+	}
+
+	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
+		err := conf.LocalAddress.Set(envRunAddr)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
+		err := conf.BaseURL.Set(envBasePath)
+		if err != nil {
+			return conf, err
+		}
+	}
+
+	flag.Var(&conf.BaseURL, "b", "address to make short url")
+	flag.Var(&conf.LocalAddress, "a", "address to start server")
+
+	flag.Parse()
+
+	fmt.Printf("Server started on: %v:%v\n", conf.LocalAddress.IP, conf.LocalAddress.Port)
+	fmt.Printf("Base URL: %v:%v\n", conf.BaseURL.IP, conf.BaseURL.Port)
+
+	return conf, nil
+}

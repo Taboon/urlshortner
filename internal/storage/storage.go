@@ -27,17 +27,21 @@ func (s TempStorage) AddURL(data URLData) error {
 	return nil
 }
 
-func (s TempStorage) CheckID(id string) (URLData, bool) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Проверяем, что map был инициализирова н
+func mapChecker() {
 	if sm.mapStor == nil {
 		sm.mapStor = make(map[string]URLData)
 	}
 	if sm.reverseMapStor == nil {
 		sm.reverseMapStor = make(map[URLData]string)
 	}
+}
+
+func (s TempStorage) CheckID(id string) (URLData, bool) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	// Проверяем, что map был инициализирован
+	mapChecker()
 
 	v, ok := sm.mapStor[id]
 	if ok {
@@ -51,12 +55,7 @@ func (s TempStorage) CheckURL(url string) (URLData, bool) {
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]URLData)
-	}
-	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[URLData]string)
-	}
+	mapChecker()
 
 	for _, v := range sm.mapStor {
 		if v.URL == url {
@@ -67,11 +66,7 @@ func (s TempStorage) CheckURL(url string) (URLData, bool) {
 }
 
 func (s TempStorage) RemoveURL(data URLData) error {
-	err := sm.Remove(data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sm.Remove(data)
 }
 
 func (sm *SafeMap) Write(url URLData) error {
@@ -79,29 +74,25 @@ func (sm *SafeMap) Write(url URLData) error {
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]URLData)
-	}
-	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[URLData]string)
-	}
+	mapChecker()
 
 	// Пишем данные в map
 	_, ok := sm.mapStor[url.ID]
 	if ok {
 		err := errors.New("id exist")
 		return err
-	} else {
-		_, ok := sm.reverseMapStor[url]
-		if ok {
-			err := errors.New("url exist")
-			return err
-		} else {
-			sm.mapStor[url.ID] = url
-			sm.reverseMapStor[url] = url.ID
-			return nil
-		}
 	}
+
+	_, ok = sm.reverseMapStor[url]
+	if ok {
+		err := errors.New("url exist")
+		return err
+	}
+
+	sm.mapStor[url.ID] = url
+	sm.reverseMapStor[url] = url.ID
+	return nil
+
 }
 
 func (sm *SafeMap) Remove(url URLData) error {
@@ -109,12 +100,7 @@ func (sm *SafeMap) Remove(url URLData) error {
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]URLData)
-	}
-	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[URLData]string)
-	}
+	mapChecker()
 
 	// Удаляем данные из map
 	_, ok := sm.mapStor[url.ID]
