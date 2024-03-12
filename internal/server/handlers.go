@@ -13,7 +13,7 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	path = strings.Trim(path, "/")
 
 	v, ok := s.Stor.CheckID(path)
-	if ok == false {
+	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
