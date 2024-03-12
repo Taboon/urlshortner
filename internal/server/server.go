@@ -23,7 +23,7 @@ const (
 )
 
 func (s *Server) Run() error {
-
+	fmt.Println(s.Conf.URL())
 	err := http.ListenAndServe(s.Conf.URL(), s.URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)

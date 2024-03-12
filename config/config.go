@@ -57,11 +57,11 @@ func (c *Config) URL() string {
 func ParseFlags() (Config, error) {
 	conf := Config{
 		LocalAddress: Address{
-			"127.0.0.1",
+			"localhost",
 			8080,
 		},
 		BaseURL: Address{
-			"127.0.0.1",
+			"localhost",
 			8080,
 		},
 	}
