@@ -10,10 +10,8 @@ import (
 func main() {
 	stor := storage.TempStorage{}
 	serv := server.Server{}
-	conf, err := config.ParseFlags()
-	if err != nil {
-		log.Fatal(err)
-	}
+	conf := config.Config{}
+	conf = conf.BuildConfig()
 	serv.Conf = conf
 	serv.Stor = stor
 	if err := serv.Run(); err != nil {
