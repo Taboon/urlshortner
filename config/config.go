@@ -30,12 +30,10 @@ func (l *Address) String() string {
 // Set связывает переменную типа со значением флага
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *Address) Set(flagValue string) error {
-	if strings.HasPrefix(flagValue, "http://") {
-		flagValue = flagValue[7:]
-	}
-	if strings.HasPrefix(flagValue, "https://") {
-		flagValue = flagValue[8:]
-	}
+
+	flagValue = strings.TrimPrefix(flagValue, "http://")
+	flagValue = strings.TrimPrefix(flagValue, "https://")
+
 	address := strings.Split(flagValue, ":")
 	if address[0] == "" {
 		err := errors.New("wrong adress")
