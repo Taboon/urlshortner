@@ -55,7 +55,7 @@ func (l *Address) Set(flagValue string) error {
 }
 
 func (c *Config) URL() string {
-	return c.LocalAddress.IP + ":" + strconv.Itoa(c.LocalAddress.Port)
+	return fmt.Sprintf("%v:%v", c.LocalAddress.IP, strconv.Itoa(c.LocalAddress.Port))
 }
 
 func (c *Config) BuildConfig() Config {

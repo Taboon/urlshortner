@@ -3,18 +3,18 @@ package server
 import (
 	"errors"
 	"fmt"
-	storage2 "github.com/Taboon/urlshortner/internal/storage"
+	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/storage"
 	"math/rand"
 	"net/http"
 	"strings"
 
-	"github.com/Taboon/urlshortner/config"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
 	Conf config.Config
-	Stor storage2.Repositories
+	Stor storage.Repositories
 }
 
 const (
@@ -55,22 +55,22 @@ func (s *Server) urlValidator(url string) (string, error) {
 func (s *Server) urlSaver(url string) (string, error) {
 	if _, ok := s.Stor.CheckURL(url); ok {
 		return "", errors.New("url already exist")
-	} else {
-		id := s.generateID()
-		urlObj := storage2.URLData{URL: url, ID: id}
-		err := s.Stor.AddURL(urlObj)
-		if err != nil {
-			return "", err
-		}
-		return id, nil
 	}
+	id := s.generateID()
+	urlObj := storage.URLData{URL: url, ID: id}
+	err := s.Stor.AddURL(urlObj)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+
 }
 
 func (s *Server) generateID() string {
-	ok := true
+
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
-	for ok {
+	for {
 		for i := range b {
 			if rand.Intn(2) == 0 {
 				b[i] = letterBytes[rand.Intn(26)] // строчные символы
@@ -78,10 +78,8 @@ func (s *Server) generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		if _, ok := s.Stor.CheckID(string(b)); ok {
-			continue
+		if _, ok := s.Stor.CheckID(string(b)); !ok {
+			return string(b)
 		}
-		ok = false
 	}
-	return string(b)
 }

@@ -16,6 +16,9 @@ type SafeMap struct {
 	reverseMapStor map[URLData]string
 }
 
+type TempStorage struct {
+}
+
 var _ Repositories = (*TempStorage)(nil)
 var sm = SafeMap{}
 

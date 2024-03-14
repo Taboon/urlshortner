@@ -2,18 +2,18 @@ package server
 
 import (
 	"fmt"
-	storage2 "github.com/Taboon/urlshortner/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/Taboon/urlshortner/config"
+	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/storage"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSendUrl(t *testing.T) {
-	urlMock := storage2.URLData{
+	urlMock := storage.URLData{
 		URL: "http://ya.ru",
 		ID:  "AAAAaaaa",
 	}
@@ -29,7 +29,7 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage2.TempStorage{},
+		Stor: storage.TempStorage{},
 	}
 
 	err := s.Stor.AddURL(urlMock)
@@ -111,7 +111,7 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage2.TempStorage{},
+		Stor: storage.TempStorage{},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.getURL))

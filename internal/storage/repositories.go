@@ -14,6 +14,3 @@ type Repositories interface {
 	// Возвращает ошибку, если не удалось удалить URLData.
 	RemoveURL(data URLData) error
 }
-
-type TempStorage struct {
-}
