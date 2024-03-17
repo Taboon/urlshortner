@@ -60,14 +60,14 @@ func (c Config) URL() string {
 
 func (c Config) BuildConfig() Config {
 	conf := Config{
-		LocalAddress: Address{
-			"127.0.0.1",
-			8080,
-		},
-		BaseURL: Address{
-			"127.0.0.1",
-			8080,
-		},
+		//LocalAddress: Address{
+		//	"127.0.0.1",
+		//	8080,
+		//},
+		//BaseURL: Address{
+		//	"127.0.0.1",
+		//	8080,
+		//},
 	}
 
 	err := c.parseEnv(conf)
