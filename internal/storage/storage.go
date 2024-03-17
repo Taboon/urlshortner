@@ -20,7 +20,7 @@ type TempStorage struct {
 	sm *SafeMap
 }
 
-//var _ Repository = (*TempStorage)(nil)
+var _ Repository = (*TempStorage)(nil)
 
 func NewTempStorage() Repository {
 	var data = SafeMap{}

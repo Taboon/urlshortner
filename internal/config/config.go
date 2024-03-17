@@ -60,22 +60,22 @@ func (c Config) URL() string {
 
 func (c Config) BuildConfig() Config {
 	conf := Config{
-		//LocalAddress: Address{
-		//	"127.0.0.1",
-		//	8080,
-		//},
-		//BaseURL: Address{
-		//	"127.0.0.1",
-		//	8080,
-		//},
+		LocalAddress: Address{
+			"127.0.0.1",
+			8080,
+		},
+		BaseURL: Address{
+			"127.0.0.1",
+			8080,
+		},
 	}
 
-	err := c.parseEnv(conf)
+	err := c.parseEnv(&conf)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = c.parseFlags(conf)
+	err = c.parseFlags(&conf)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -85,7 +85,7 @@ func (c Config) BuildConfig() Config {
 	return conf
 }
 
-func (c Config) parseEnv(conf Config) error {
+func (c Config) parseEnv(conf *Config) error {
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
 		err := conf.LocalAddress.Set(envRunAddr)
 		if err != nil {
@@ -101,7 +101,7 @@ func (c Config) parseEnv(conf Config) error {
 	return nil
 }
 
-func (c Config) parseFlags(conf Config) error {
+func (c Config) parseFlags(conf *Config) error {
 
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")

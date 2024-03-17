@@ -63,11 +63,9 @@ func (s *Server) urlSaver(url string) (string, error) {
 		return "", err
 	}
 	return id, nil
-
 }
 
 func (s *Server) generateID() string {
-
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
 	for {
