@@ -17,24 +17,16 @@ type SafeMap struct {
 }
 
 type TempStorage struct {
-	sm SafeMap
+	sm *SafeMap
 }
 
-var _ Repository = (*TempStorage)(nil)
+//var _ Repository = (*TempStorage)(nil)
 
 func NewTempStorage() Repository {
 	var data = SafeMap{}
-	return &TempStorage{
-		sm: data,
+	return TempStorage{
+		sm: &data,
 	}
-}
-
-func (s *TempStorage) AddURL(data URLData) error {
-	err := s.sm.Write(data)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func mapChecker(sm *SafeMap) {
@@ -46,12 +38,20 @@ func mapChecker(sm *SafeMap) {
 	}
 }
 
-func (s *TempStorage) CheckID(id string) (URLData, bool) {
+func (s TempStorage) AddURL(data URLData) error {
+	err := s.sm.Write(data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s TempStorage) CheckID(id string) (URLData, bool) {
 	s.sm.mu.Lock()
 	defer s.sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker(&s.sm)
+	mapChecker(s.sm)
 
 	v, ok := s.sm.mapStor[id]
 	if ok {
@@ -60,12 +60,12 @@ func (s *TempStorage) CheckID(id string) (URLData, bool) {
 	return URLData{}, false
 }
 
-func (s *TempStorage) CheckURL(url string) (URLData, bool) {
+func (s TempStorage) CheckURL(url string) (URLData, bool) {
 	s.sm.mu.Lock()
 	defer s.sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker(&s.sm)
+	mapChecker(s.sm)
 
 	for _, v := range s.sm.mapStor {
 		if v.URL == url {
@@ -75,7 +75,7 @@ func (s *TempStorage) CheckURL(url string) (URLData, bool) {
 	return URLData{}, false
 }
 
-func (s *TempStorage) RemoveURL(data URLData) error {
+func (s TempStorage) RemoveURL(data URLData) error {
 	return s.sm.Remove(data)
 }
 
