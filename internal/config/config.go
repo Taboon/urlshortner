@@ -20,7 +20,7 @@ type Address struct {
 }
 
 // String должен уметь сериализовать переменную типа в строку.
-func (l Address) String() string {
+func (l *Address) String() string {
 	var address = []string{
 		l.IP, fmt.Sprint(l.Port),
 	}
@@ -29,7 +29,7 @@ func (l Address) String() string {
 
 // Set связывает переменную типа со значением флага
 // и устанавливает правила парсинга для пользовательского типа.
-func (l Address) Set(flagValue string) error {
+func (l *Address) Set(flagValue string) error {
 
 	flagValue = strings.TrimPrefix(flagValue, "http://")
 	flagValue = strings.TrimPrefix(flagValue, "https://")
@@ -54,11 +54,11 @@ func (l Address) Set(flagValue string) error {
 	return nil
 }
 
-func (c Config) URL() string {
+func (c *Config) URL() string {
 	return fmt.Sprintf("%v:%v", c.LocalAddress.IP, strconv.Itoa(c.LocalAddress.Port))
 }
 
-func (c Config) BuildConfig() Config {
+func (c *Config) BuildConfig() Config {
 	conf := Config{
 		LocalAddress: Address{
 			"127.0.0.1",
@@ -85,7 +85,7 @@ func (c Config) BuildConfig() Config {
 	return conf
 }
 
-func (c Config) parseEnv(conf *Config) error {
+func (c *Config) parseEnv(conf *Config) error {
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
 		err := conf.LocalAddress.Set(envRunAddr)
 		if err != nil {
@@ -101,7 +101,7 @@ func (c Config) parseEnv(conf *Config) error {
 	return nil
 }
 
-func (c Config) parseFlags(conf *Config) error {
+func (c *Config) parseFlags(conf *Config) error {
 
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
