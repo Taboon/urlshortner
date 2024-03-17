@@ -29,7 +29,7 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.TempStorage{},
+		Stor: storage.NewTempStorage(),
 	}
 
 	err := s.Stor.AddURL(urlMock)
@@ -77,15 +77,16 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-			//if resp.StatusCode == 200 {
-			//	//fmt.Println("Сравниваем:" + resp. + " и " + tt.expectedURL)
-			//	//require.Equal(t, resp.Header.Get("Host"), tt.expectedURL)
-			//}
 		})
 	}
 }
 
 func Test_getUrl(t *testing.T) {
+
+	urlMock := storage.URLData{
+		URL: "http://ya.ru",
+		ID:  "AAAAaaaa",
+	}
 
 	tests := []struct {
 		name         string
@@ -111,7 +112,13 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.TempStorage{},
+		Stor: storage.NewTempStorage(),
+	}
+
+	err := s.Stor.AddURL(urlMock)
+	if err != nil {
+		fmt.Println("Error add URL mock")
+		return
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.getURL))
@@ -139,11 +146,11 @@ func Test_getUrl(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
+			fmt.Println(req)
+			fmt.Println(tt.body)
+			fmt.Println(tt.name)
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-			//if resp.StatusCode == 307 {
-			//	fmt.Println("Сравниваем:" + resp.Header.Get("Location") + " и " + tt.expectedUrl)
-			//	require.Equal(t, resp.Header.Get("Location"), tt.expectedUrl)
-			//}
+
 		})
 	}
 }

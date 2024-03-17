@@ -1,6 +1,6 @@
 package storage
 
-type Repositories interface {
+type Repository interface {
 	// AddURL добавляет URL в репозиторий.
 	// Возвращает ошибку, если не удалось добавить URL
 	AddURL(data URLData) error

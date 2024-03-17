@@ -14,7 +14,7 @@ import (
 
 type Server struct {
 	Conf config.Config
-	Stor storage.Repositories
+	Stor storage.Repository
 }
 
 const (

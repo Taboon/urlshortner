@@ -17,20 +17,27 @@ type SafeMap struct {
 }
 
 type TempStorage struct {
+	sm SafeMap
 }
 
-var _ Repositories = (*TempStorage)(nil)
-var sm = SafeMap{}
+var _ Repository = (*TempStorage)(nil)
 
-func (s TempStorage) AddURL(data URLData) error {
-	err := sm.Write(data)
+func NewTempStorage() Repository {
+	var data = SafeMap{}
+	return &TempStorage{
+		sm: data,
+	}
+}
+
+func (s *TempStorage) AddURL(data URLData) error {
+	err := s.sm.Write(data)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func mapChecker() {
+func mapChecker(sm *SafeMap) {
 	if sm.mapStor == nil {
 		sm.mapStor = make(map[string]URLData)
 	}
@@ -39,28 +46,28 @@ func mapChecker() {
 	}
 }
 
-func (s TempStorage) CheckID(id string) (URLData, bool) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+func (s *TempStorage) CheckID(id string) (URLData, bool) {
+	s.sm.mu.Lock()
+	defer s.sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker()
+	mapChecker(&s.sm)
 
-	v, ok := sm.mapStor[id]
+	v, ok := s.sm.mapStor[id]
 	if ok {
 		return v, true
 	}
 	return URLData{}, false
 }
 
-func (s TempStorage) CheckURL(url string) (URLData, bool) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+func (s *TempStorage) CheckURL(url string) (URLData, bool) {
+	s.sm.mu.Lock()
+	defer s.sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker()
+	mapChecker(&s.sm)
 
-	for _, v := range sm.mapStor {
+	for _, v := range s.sm.mapStor {
 		if v.URL == url {
 			return v, true
 		}
@@ -68,8 +75,8 @@ func (s TempStorage) CheckURL(url string) (URLData, bool) {
 	return URLData{}, false
 }
 
-func (s TempStorage) RemoveURL(data URLData) error {
-	return sm.Remove(data)
+func (s *TempStorage) RemoveURL(data URLData) error {
+	return s.sm.Remove(data)
 }
 
 func (sm *SafeMap) Write(url URLData) error {
@@ -77,7 +84,7 @@ func (sm *SafeMap) Write(url URLData) error {
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker()
+	mapChecker(sm)
 
 	// Пишем данные в map
 	_, ok := sm.mapStor[url.ID]
@@ -103,7 +110,7 @@ func (sm *SafeMap) Remove(url URLData) error {
 	defer sm.mu.Unlock()
 
 	// Проверяем, что map был инициализирован
-	mapChecker()
+	mapChecker(sm)
 
 	// Удаляем данные из map
 	_, ok := sm.mapStor[url.ID]

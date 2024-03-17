@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	stor := storage.TempStorage{}
+	stor := storage.NewTempStorage()
 	srv := server.Server{}
 	conf := config.Config{}
 	conf = conf.BuildConfig()
