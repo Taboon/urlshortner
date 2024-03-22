@@ -81,8 +81,6 @@ func BuildConfig() *Config {
 		fmt.Println(err)
 	}
 
-	//fmt.Println("Config:", conf)
-
 	return &conf
 }
 
@@ -109,9 +107,6 @@ func parseFlags(conf *Config) error {
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 
 	flag.Parse()
-
-	//fmt.Printf("Server started on: %v:%v\n", conf.LocalAddress.IP, conf.LocalAddress.Port)
-	//fmt.Printf("Base URL: %v:%v\n", conf.BaseURL.IP, conf.BaseURL.Port)
 
 	return nil
 }
