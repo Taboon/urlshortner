@@ -21,7 +21,6 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", v.URL)
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusTemporaryRedirect)
-
 }
 
 func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {

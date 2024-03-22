@@ -19,7 +19,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	s := Server{
-		Conf: config.Config{
+		Conf: &config.Config{
 			LocalAddress: config.Address{
 				IP:   "127.0.0.1",
 				Port: 8080,
@@ -102,7 +102,7 @@ func Test_getUrl(t *testing.T) {
 	}
 
 	s := Server{
-		Conf: config.Config{
+		Conf: &config.Config{
 			LocalAddress: config.Address{
 				IP:   "127.0.0.1",
 				Port: 8080,

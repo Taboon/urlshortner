@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/storage"
 	"math/rand"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 )
 
 type Server struct {
-	Conf config.Config
+	Conf *config.Config
 	Stor storage.Repository
 }
 
@@ -23,7 +24,6 @@ const (
 )
 
 func (s *Server) Run() error {
-	fmt.Println(s.Conf.URL())
 	err := http.ListenAndServe(s.Conf.URL(), s.URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
@@ -34,8 +34,8 @@ func (s *Server) Run() error {
 func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", s.sendURL)
-	r.Post("/", s.getURL)
+	r.Get("/{id}", logger.RequestLogger(s.sendURL))
+	r.Post("/", logger.RequestLogger(s.getURL))
 	return r
 }
 
