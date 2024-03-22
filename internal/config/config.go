@@ -12,6 +12,7 @@ import (
 type Config struct {
 	LocalAddress Address
 	BaseURL      Address
+	LogLevel     string
 }
 
 type Address struct {
@@ -58,7 +59,7 @@ func (c *Config) URL() string {
 	return fmt.Sprintf("%v:%v", c.LocalAddress.IP, strconv.Itoa(c.LocalAddress.Port))
 }
 
-func (c *Config) BuildConfig() Config {
+func BuildConfig() *Config {
 	conf := Config{
 		LocalAddress: Address{
 			"127.0.0.1",
@@ -70,22 +71,22 @@ func (c *Config) BuildConfig() Config {
 		},
 	}
 
-	err := c.parseEnv(&conf)
+	err := parseEnv(&conf)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = c.parseFlags(&conf)
+	err = parseFlags(&conf)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println("Config:", conf)
+	//fmt.Println("Config:", conf)
 
-	return conf
+	return &conf
 }
 
-func (c *Config) parseEnv(conf *Config) error {
+func parseEnv(conf *Config) error {
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
 		err := conf.LocalAddress.Set(envRunAddr)
 		if err != nil {
@@ -101,15 +102,16 @@ func (c *Config) parseEnv(conf *Config) error {
 	return nil
 }
 
-func (c *Config) parseFlags(conf *Config) error {
+func parseFlags(conf *Config) error {
 
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
+	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 
 	flag.Parse()
 
-	fmt.Printf("Server started on: %v:%v\n", conf.LocalAddress.IP, conf.LocalAddress.Port)
-	fmt.Printf("Base URL: %v:%v\n", conf.BaseURL.IP, conf.BaseURL.Port)
+	//fmt.Printf("Server started on: %v:%v\n", conf.LocalAddress.IP, conf.LocalAddress.Port)
+	//fmt.Printf("Base URL: %v:%v\n", conf.BaseURL.IP, conf.BaseURL.Port)
 
 	return nil
 }
