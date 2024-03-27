@@ -36,6 +36,7 @@ func (s *Server) URLRouter() chi.Router {
 
 	r.Get("/{id}", logger.RequestLogger(s.sendURL))
 	r.Post("/", logger.RequestLogger(s.getURL))
+	r.Post("/api/shorten", logger.RequestLogger(s.getURL))
 	return r
 }
 
