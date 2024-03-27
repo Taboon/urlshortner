@@ -9,7 +9,7 @@ import (
 )
 
 type Request struct {
-	Url string
+	URL string
 }
 type Response struct {
 	Result string
