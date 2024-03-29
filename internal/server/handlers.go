@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 )
 
 type Request struct {
-	URL string
+	URL string `json:"url"`
 }
 type Response struct {
 	Result string
@@ -69,9 +70,10 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := Request{}
+	fmt.Println(string(req))
 	err = json.Unmarshal(req, &body)
 	if err != nil {
-		http.Error(w, "Не удалось сериализовать JSON", http.StatusBadRequest)
+		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 

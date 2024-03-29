@@ -1,9 +1,8 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -160,14 +159,15 @@ func Test_getUrl(t *testing.T) {
 func TestServer_shortenJSON(t *testing.T) {
 	tests := []struct {
 		name         string
-		request      Request
+		request      string
 		contentType  string
 		expectedCode int
 		expectedBody string
 	}{
-		{name: "test1", request: Request{URL: "http://ya.ru"}, contentType: "application/json", expectedCode: http.StatusCreated},
-		{name: "test2", request: Request{URL: "ya.ru"}, contentType: "application/json", expectedCode: http.StatusBadRequest},
-		{name: "test3", request: Request{URL: ""}, contentType: "application/json", expectedCode: http.StatusBadRequest},
+		{name: "test1", request: "{\"url\": \"http://ya.ru\"}", contentType: "application/json", expectedCode: http.StatusCreated},
+		{name: "test2", request: "{\"url\": \"ya.ru\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
+		{name: "test2", request: "{RL: \"ya.ru\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
+		{name: "test3", request: "{\"url\": \"\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
 
 	s := Server{
@@ -193,15 +193,12 @@ func TestServer_shortenJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := server.URL
+			url := server.URL + "/api/shorten"
 
-			body, err := json.Marshal(tt.request)
-			if err != nil {
-				log.Fatalf("Ошибка маршалинга")
-				return
-			}
+			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
+			fmt.Println(tt.request)
+			req.Header.Set("Content-Type", tt.contentType)
 
-			req, err := http.NewRequest("POST", url, strings.NewReader(string(body)))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -211,6 +208,12 @@ func TestServer_shortenJSON(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer resp.Body.Close()
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fmt.Println(string(respBody))
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 		})
