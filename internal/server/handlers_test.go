@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -151,6 +153,66 @@ func Test_getUrl(t *testing.T) {
 			fmt.Println(tt.name)
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 
+		})
+	}
+}
+
+func TestServer_shortenJSON(t *testing.T) {
+	tests := []struct {
+		name         string
+		request      Request
+		contentType  string
+		expectedCode int
+		expectedBody string
+	}{
+		{name: "test1", request: Request{URL: "http://ya.ru"}, contentType: "application/json", expectedCode: http.StatusCreated},
+		{name: "test2", request: Request{URL: "ya.ru"}, contentType: "application/json", expectedCode: http.StatusBadRequest},
+		{name: "test3", request: Request{URL: ""}, contentType: "application/json", expectedCode: http.StatusBadRequest},
+	}
+
+	s := Server{
+		Conf: &config.Config{
+			LocalAddress: config.Address{
+				IP:   "127.0.0.1",
+				Port: 8080,
+			},
+			BaseURL: config.Address{
+				IP:   "127.0.0.1",
+				Port: 8080,
+			},
+		},
+		Stor: storage.NewTempStorage(),
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
+	defer server.Close()
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return nil
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := server.URL
+
+			body, err := json.Marshal(tt.request)
+			if err != nil {
+				log.Fatalf("Ошибка маршалинга")
+				return
+			}
+
+			req, err := http.NewRequest("POST", url, strings.NewReader(string(body)))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 		})
 	}
 }

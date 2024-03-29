@@ -74,15 +74,13 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Не удалось сериализовать JSON", http.StatusBadRequest)
 		return
 	}
-	if body.URL == "" {
-		http.Error(w, "Пустой URL", http.StatusBadRequest)
-		return
-	}
+
 	url, err := s.urlValidator(body.URL)
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	id, err := s.urlSaver(url)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
@@ -93,7 +91,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, "Не кодировать JSON: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Не удалось кодировать JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
