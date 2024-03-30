@@ -1,7 +1,11 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -156,7 +160,7 @@ func Test_getUrl(t *testing.T) {
 	}
 }
 
-func TestServer_shortenJSON(t *testing.T) {
+func v(t *testing.T) {
 	tests := []struct {
 		name         string
 		request      string
@@ -218,4 +222,72 @@ func TestServer_shortenJSON(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 		})
 	}
+}
+
+func TestGzipCompression(t *testing.T) {
+	requestBody := `{"url": "https://ya.ru"}`
+
+	s := Server{
+		Conf: &config.Config{
+			LocalAddress: config.Address{
+				IP:   "127.0.0.1",
+				Port: 8080,
+			},
+			BaseURL: config.Address{
+				IP:   "127.0.0.1",
+				Port: 8080,
+			},
+		},
+		Stor: storage.NewTempStorage(),
+	}
+
+	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))
+
+	srv := httptest.NewServer(handler)
+	defer srv.Close()
+
+	t.Run("sends_gzip", func(t *testing.T) {
+		buf := bytes.NewBuffer(nil)
+		zb := gzip.NewWriter(buf)
+		_, err := zb.Write([]byte(requestBody))
+		require.NoError(t, err)
+		err = zb.Close()
+		require.NoError(t, err)
+
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Content-Encoding", "gzip")
+		r.Header.Set("Accept-Encoding", "")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		//require.JSONEq(t, successBody, string(b))
+	})
+
+	t.Run("accepts_gzip", func(t *testing.T) {
+		buf := bytes.NewBufferString(requestBody)
+		r := httptest.NewRequest("POST", srv.URL, buf)
+		r.RequestURI = ""
+		r.Header.Set("Accept-Encoding", "gzip")
+
+		resp, err := http.DefaultClient.Do(r)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+		defer resp.Body.Close()
+
+		zr, err := gzip.NewReader(resp.Body)
+		require.NoError(t, err)
+
+		_, err = io.ReadAll(zr)
+		require.NoError(t, err)
+
+		//require.JSONEq(t, successBody, string(b))
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/logger"
+	"github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/Taboon/urlshortner/internal/storage"
 	"math/rand"
 	"net/http"
@@ -34,9 +35,9 @@ func (s *Server) Run() error {
 func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", logger.RequestLogger(s.sendURL))
-	r.Post("/", logger.RequestLogger(s.getURL))
-	r.Post("/api/shorten", logger.RequestLogger(s.shortenJSON))
+	r.Get("/{id}", logger.RequestLogger(gzip.GzipMiddleware(s.sendURL)))
+	r.Post("/", logger.RequestLogger(gzip.GzipMiddleware(s.getURL)))
+	r.Post("/api/shorten", logger.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
 	return r
 }
 
