@@ -160,7 +160,7 @@ func Test_getUrl(t *testing.T) {
 	}
 }
 
-func v(t *testing.T) {
+func Test_shortenJSON(t *testing.T) {
 	tests := []struct {
 		name         string
 		request      string
