@@ -34,7 +34,7 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("file.txt"),
+		Repo: storage.NewInternalStorage(),
 	}
 
 	err := s.Repo.AddURL(urlMock)
@@ -68,8 +68,9 @@ func TestSendUrl(t *testing.T) {
 		t.Run(tt.method, func(t *testing.T) {
 			// Формируем URL с параметром id
 			url := server.URL + tt.path
+			fmt.Println(url)
 			// Создаем GET запрос
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest(tt.method, url, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -79,11 +80,19 @@ func TestSendUrl(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer resp.Body.Close()
-
-			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 			body, _ := io.ReadAll(resp.Body)
 			fmt.Println(string(body))
+			fmt.Println(resp)
+
+			defer resp.Body.Close()
+
+			id, _, err := s.Repo.CheckID("AAAAaaaa")
+			if err != nil {
+				return
+			}
+			fmt.Println(id)
+
+			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 		})
 	}
 }
@@ -119,7 +128,7 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("file.txt"),
+		Repo: storage.NewInternalStorage(),
 	}
 
 	err := s.Repo.AddURL(urlMock)
@@ -185,7 +194,7 @@ func Test_shortenJSON(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("file.txt"),
+		Repo: storage.NewInternalStorage(),
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
@@ -238,7 +247,7 @@ func TestGzipCompression(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("file.txt"),
+		Repo: storage.NewInternalStorage(),
 	}
 
 	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))

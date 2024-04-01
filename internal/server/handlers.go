@@ -23,10 +23,10 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 
 	v, ok, err := s.Repo.CheckID(path)
 	if err != nil {
-		http.Error(w, "Не проверить ID", http.StatusBadRequest)
+		http.Error(w, "Ошибка при проверке ID", http.StatusBadRequest)
 	}
-	if ok {
-		w.WriteHeader(http.StatusBadRequest)
+	if !ok {
+		http.Error(w, "Отсутствует такой ID", http.StatusBadRequest)
 		return
 	}
 
