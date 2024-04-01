@@ -118,10 +118,7 @@ func parseEnv(conf *Config) error {
 		}
 	}
 	if envBasePath := os.Getenv("FILE_STORAGE_PATH"); envBasePath != "" {
-		err := conf.BaseURL.Set(envBasePath)
-		if err != nil {
-			return err
-		}
+		conf.FileBase = envBasePath
 	}
 	return nil
 }
