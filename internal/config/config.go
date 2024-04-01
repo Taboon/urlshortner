@@ -37,6 +37,10 @@ func (l *Address) Set(flagValue string) error {
 	flagValue = strings.TrimPrefix(flagValue, "https://")
 
 	address := strings.Split(flagValue, ":")
+	if len(address) == 0 {
+		return errors.New("не можем распарсить адрес")
+	}
+
 	if address[0] == "" {
 		err := errors.New("wrong adress")
 		return err
