@@ -13,6 +13,7 @@ type Config struct {
 	LocalAddress Address
 	BaseURL      Address
 	LogLevel     string
+	LogFile      *os.File
 }
 
 type Address struct {
@@ -90,11 +91,11 @@ func parseEnv(conf *Config) error {
 		if err != nil {
 			return err
 		}
-		if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
-			err := conf.BaseURL.Set(envBasePath)
-			if err != nil {
-				return err
-			}
+	}
+	if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
+		err := conf.BaseURL.Set(envBasePath)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
