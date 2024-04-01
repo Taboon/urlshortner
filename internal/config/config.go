@@ -33,10 +33,15 @@ func (l *Address) String() string {
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *Address) Set(flagValue string) error {
 
+	if flagValue == "" {
+		return errors.New("пустое значение флага")
+	}
+
 	flagValue = strings.TrimPrefix(flagValue, "http://")
 	flagValue = strings.TrimPrefix(flagValue, "https://")
 
 	address := strings.Split(flagValue, ":")
+
 	if len(address) == 0 {
 		return errors.New("не можем распарсить адрес")
 	}
