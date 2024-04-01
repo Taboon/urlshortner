@@ -33,7 +33,7 @@ func (l *Address) String() string {
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *Address) Set(flagValue string) error {
 
-	address := []string{"", ""}
+	var address = []string{"", ""}
 
 	if flagValue == "" {
 		return errors.New("пустое значение флага")
