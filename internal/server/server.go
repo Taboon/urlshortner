@@ -7,6 +7,7 @@ import (
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/Taboon/urlshortner/internal/storage"
+	"go.uber.org/zap"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -16,7 +17,7 @@ import (
 
 type Server struct {
 	Conf *config.Config
-	Stor storage.Repository
+	Repo storage.Repository
 }
 
 const (
@@ -55,12 +56,16 @@ func (s *Server) urlValidator(url string) (string, error) {
 }
 
 func (s *Server) urlSaver(url string) (string, error) {
-	if _, ok := s.Stor.CheckURL(url); ok {
+	_, ok, err := s.Repo.CheckURL(url)
+	if err != nil {
+		return "", err
+	}
+	if ok {
 		return "", errors.New("url already exist")
 	}
 	id := s.generateID()
 	urlObj := storage.URLData{URL: url, ID: id}
-	err := s.Stor.AddURL(urlObj)
+	err = s.Repo.AddURL(urlObj)
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +83,11 @@ func (s *Server) generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		if _, ok := s.Stor.CheckID(string(b)); !ok {
+		_, ok, err := s.Repo.CheckID(string(b))
+		if err != nil {
+			logger.Log.Error("Ошибка при проверке ID", zap.Error(err))
+		}
+		if ok {
 			return string(b)
 		}
 	}

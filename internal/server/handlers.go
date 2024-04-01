@@ -21,7 +21,10 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	v, ok := s.Stor.CheckID(path)
+	v, ok, err := s.Repo.CheckID(path)
+	if err != nil {
+		http.Error(w, "Не проверить ID", http.StatusBadRequest)
+	}
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return

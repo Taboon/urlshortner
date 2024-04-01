@@ -34,10 +34,10 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.NewTempStorage(),
+		Repo: storage.NewFileStorage("file.txt"),
 	}
 
-	err := s.Stor.AddURL(urlMock)
+	err := s.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -82,6 +82,8 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println(string(body))
 		})
 	}
 }
@@ -117,10 +119,10 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.NewTempStorage(),
+		Repo: storage.NewFileStorage("file.txt"),
 	}
 
-	err := s.Stor.AddURL(urlMock)
+	err := s.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -151,11 +153,9 @@ func Test_getUrl(t *testing.T) {
 			}
 			defer resp.Body.Close()
 
-			fmt.Println(req)
-			fmt.Println(tt.body)
-			fmt.Println(tt.name)
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
-
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println(string(body))
 		})
 	}
 }
@@ -185,7 +185,7 @@ func Test_shortenJSON(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.NewTempStorage(),
+		Repo: storage.NewFileStorage("file.txt"),
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
@@ -238,7 +238,7 @@ func TestGzipCompression(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Stor: storage.NewTempStorage(),
+		Repo: storage.NewFileStorage("file.txt"),
 	}
 
 	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))

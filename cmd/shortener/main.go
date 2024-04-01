@@ -17,11 +17,18 @@ func main() {
 		log.Fatal("Can't set logger")
 	}
 
-	stor := storage.NewTempStorage()
+	var stor storage.Repository
+
+	if conf.FileBase != "" {
+		stor = storage.NewFileStorage(conf.FileBase)
+	} else {
+		stor = storage.NewInternalStorage()
+	}
+
 	srv := server.Server{}
 
 	srv.Conf = &conf
-	srv.Stor = stor
+	srv.Repo = stor
 
 	logger.Log.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.LogLevel))
 
