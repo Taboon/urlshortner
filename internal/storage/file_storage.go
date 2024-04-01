@@ -17,11 +17,11 @@ type FileStorage struct {
 var _ Repository = (*FileStorage)(nil)
 
 func NewFileStorage(fileName string) *FileStorage {
-
 	err := os.MkdirAll(filepath.Dir(fileName), 0774)
 	if err != nil {
 		logger.Log.Error("Ошибка создания файла")
 	}
+	logger.Log.Debug("Создали дирректорию", zap.String("dir", filepath.Dir(fileName)))
 	return &FileStorage{
 		fileName: fileName,
 	}
