@@ -33,8 +33,6 @@ func (l *Address) String() string {
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *Address) Set(flagValue string) error {
 
-	var address = []string{"", ""}
-
 	if flagValue == "" {
 		return errors.New("пустое значение флага")
 	}
@@ -42,24 +40,38 @@ func (l *Address) Set(flagValue string) error {
 	flagValue = strings.TrimPrefix(flagValue, "http://")
 	flagValue = strings.TrimPrefix(flagValue, "https://")
 
-	address = strings.Split(flagValue, ":")
+	address := strings.Split(flagValue, ":")
 
-	if address[0] == "" {
-		err := errors.New("wrong adress")
-		return err
-	}
-	l.IP = address[0]
+	for i, v := range address {
+		if i == 0 && v != "" {
+			l.IP = v
+		}
+		if i == 1 && v != "" {
+			port, err := strconv.Atoi(v)
 
-	if address[1] == "" {
-		err := errors.New("wrong port")
-		return err
+			if err != nil {
+				return err
+			}
+			l.Port = port
+		}
 	}
-	port, err := strconv.Atoi(address[1])
 
-	if err != nil {
-		return err
-	}
-	l.Port = port
+	//if address[0] == "" {
+	//	err := errors.New("wrong adress")
+	//	return err
+	//}
+	//l.IP = address[0]
+	//
+	//if address[1] == "" {
+	//	err := errors.New("wrong port")
+	//	return err
+	//}
+	//port, err := strconv.Atoi(address[1])
+	//
+	//if err != nil {
+	//	return err
+	//}
+	//l.Port = port
 	return nil
 }
 
