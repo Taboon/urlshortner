@@ -56,22 +56,6 @@ func (l *Address) Set(flagValue string) error {
 		}
 	}
 
-	//if address[0] == "" {
-	//	err := errors.New("wrong adress")
-	//	return err
-	//}
-	//l.IP = address[0]
-	//
-	//if address[1] == "" {
-	//	err := errors.New("wrong port")
-	//	return err
-	//}
-	//port, err := strconv.Atoi(address[1])
-	//
-	//if err != nil {
-	//	return err
-	//}
-	//l.Port = port
 	return nil
 }
 

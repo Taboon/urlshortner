@@ -20,8 +20,10 @@ func main() {
 	var stor storage.Repository
 
 	if conf.FileBase != "" {
+		logger.Log.Info("Используем файловое хранилище", zap.String("file", conf.FileBase))
 		stor = storage.NewFileStorage(conf.FileBase)
 	} else {
+		logger.Log.Info("Используем внутреннее хранилище")
 		stor = storage.NewInternalStorage()
 	}
 
