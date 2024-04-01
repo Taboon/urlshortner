@@ -92,7 +92,7 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 }
 
 func (f *FileStorage) RemoveURL(data URLData) error {
-	file, err := os.OpenFile(f.fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0666)
 	defer file.Close()
 	if err != nil {
 		return err
@@ -122,6 +122,16 @@ func (f *FileStorage) RemoveURL(data URLData) error {
 
 	if urlForRemove {
 		return nil
+	}
+
+	body, err := json.Marshal(newURLs)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(body)
+	if err != nil {
+		return err
 	}
 
 	return errors.New("id not found")
