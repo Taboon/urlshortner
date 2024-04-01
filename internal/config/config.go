@@ -111,7 +111,7 @@ func parseFlags(conf *Config) error {
 
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
-	flag.Var(&conf.LocalAddress, "f", "path to file base")
+	flag.StringVar(&conf.FileBase, "f", "/tmp/short-url-db.json", "file base path")
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 
 	flag.Parse()

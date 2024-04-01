@@ -34,7 +34,7 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewInternalStorage(),
+		Repo: storage.NewFileStorage("/tmp/tet.txt"),
 	}
 
 	err := s.Repo.AddURL(urlMock)
@@ -128,7 +128,7 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewInternalStorage(),
+		Repo: storage.NewFileStorage("/tmp/tet.txt"),
 	}
 
 	err := s.Repo.AddURL(urlMock)

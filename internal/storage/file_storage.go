@@ -7,6 +7,7 @@ import (
 	"github.com/Taboon/urlshortner/internal/logger"
 	"go.uber.org/zap"
 	"os"
+	"path/filepath"
 )
 
 type FileStorage struct {
@@ -16,13 +17,18 @@ type FileStorage struct {
 var _ Repository = (*FileStorage)(nil)
 
 func NewFileStorage(fileName string) *FileStorage {
+
+	err := os.MkdirAll(filepath.Dir(fileName), 0774)
+	if err != nil {
+		logger.Log.Error("Ошибка создания файла")
+	}
 	return &FileStorage{
 		fileName: fileName,
 	}
 }
 
 func (f *FileStorage) AddURL(data URLData) error {
-	file, err := os.OpenFile(f.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(f.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
 		if err != nil {
@@ -45,7 +51,7 @@ func (f *FileStorage) AddURL(data URLData) error {
 }
 
 func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
-	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
 		if err != nil {
@@ -78,7 +84,7 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 }
 
 func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
-	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
 		if err != nil {
@@ -111,7 +117,7 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 }
 
 func (f *FileStorage) RemoveURL(data URLData) error {
-	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0666)
+	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0774)
 	defer func() {
 		err := file.Close()
 		if err != nil {
