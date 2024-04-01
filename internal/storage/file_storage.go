@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"github.com/Taboon/urlshortner/internal/logger"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -21,7 +23,12 @@ func NewFileStorage(fileName string) *FileStorage {
 
 func (f *FileStorage) AddURL(data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -39,7 +46,13 @@ func (f *FileStorage) AddURL(data URLData) error {
 
 func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+		}
+	}()
+
 	if err != nil {
 		return URLData{}, false, err
 	}
@@ -66,7 +79,13 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 
 func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+		}
+	}()
+
 	if err != nil {
 		return URLData{}, false, err
 	}
@@ -93,7 +112,13 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 
 func (f *FileStorage) RemoveURL(data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0666)
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+		}
+	}()
+
 	if err != nil {
 		return err
 	}
