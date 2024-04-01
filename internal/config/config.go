@@ -13,12 +13,29 @@ type Config struct {
 	LocalAddress Address
 	BaseURL      Address
 	LogLevel     string
-	FileBase     string
+	FileBase     FileBase
 }
 
 type Address struct {
 	IP   string
 	Port int
+}
+
+type FileBase struct {
+	File string
+}
+
+func (f *FileBase) String() string {
+	return f.File
+}
+
+func (f *FileBase) Set(flagValue string) error {
+	if flagValue == "" {
+		f.File = ""
+		return nil
+	}
+	f.File = flagValue
+	return nil
 }
 
 // String должен уметь сериализовать переменную типа в строку.
@@ -75,6 +92,8 @@ func BuildConfig() *Config {
 		},
 	}
 
+	conf.FileBase.File = "/tmp/short-url-db.json"
+
 	err := parseEnv(&conf)
 	if err != nil {
 		fmt.Println(err)
@@ -102,7 +121,7 @@ func parseEnv(conf *Config) error {
 		}
 	}
 	if envBasePath := os.Getenv("FILE_STORAGE_PATH"); envBasePath != "" {
-		conf.FileBase = envBasePath
+		conf.FileBase.File = envBasePath
 	}
 	return nil
 }
@@ -111,7 +130,7 @@ func parseFlags(conf *Config) error {
 
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
-	flag.StringVar(&conf.FileBase, "f", "/tmp/short-url-db.json", "file base path")
+	flag.Var(&conf.FileBase, "f", "file base path")
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 
 	flag.Parse()
