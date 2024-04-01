@@ -43,6 +43,7 @@ func (s *Server) URLRouter() chi.Router {
 }
 
 func (s *Server) urlValidator(url string) (string, error) {
+	logger.Log.Debug("Валидируем URL")
 	url = strings.TrimSpace(url)
 	if !strings.HasPrefix(url, httpPrefix) && !strings.HasPrefix(url, httpsPrefix) {
 		fmt.Println("Это не URL - не указан http:// или https://")
@@ -56,6 +57,7 @@ func (s *Server) urlValidator(url string) (string, error) {
 }
 
 func (s *Server) urlSaver(url string) (string, error) {
+	logger.Log.Debug("Сохраняем URL")
 	_, ok, err := s.Repo.CheckURL(url)
 	if err != nil {
 		return "", err
@@ -73,6 +75,7 @@ func (s *Server) urlSaver(url string) (string, error) {
 }
 
 func (s *Server) generateID() string {
+	logger.Log.Debug("Генерируем ID")
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
 	for {
@@ -87,7 +90,7 @@ func (s *Server) generateID() string {
 		if err != nil {
 			logger.Log.Error("Ошибка при проверке ID", zap.Error(err))
 		}
-		if ok {
+		if !ok {
 			return string(b)
 		}
 	}

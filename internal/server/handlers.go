@@ -25,7 +25,7 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Не проверить ID", http.StatusBadRequest)
 	}
-	if !ok {
+	if ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
