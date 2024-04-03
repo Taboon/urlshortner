@@ -44,7 +44,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := s.P.UrlValidator(string(req))
+	url, err := s.P.URLValidator(string(req))
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
@@ -85,7 +85,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	url, err := s.P.UrlValidator(requestBody.URL)
+	url, err := s.P.URLValidator(requestBody.URL)
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return

@@ -15,7 +15,7 @@ const (
 	httpsPrefix = "https://"
 )
 
-func (s *URLProcessor) UrlValidator(url string) (string, error) {
+func (s *URLProcessor) URLValidator(url string) (string, error) {
 	logger.Log.Debug("Валидируем URL")
 	url = strings.TrimSpace(url)
 	if !strings.HasPrefix(url, httpPrefix) && !strings.HasPrefix(url, httpsPrefix) {
