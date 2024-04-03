@@ -38,6 +38,8 @@ func (f *FileBase) Set(flagValue string) error {
 	return nil
 }
 
+var emptyFlagError = errors.New("пустое значение флага")
+
 // String должен уметь сериализовать переменную типа в строку.
 func (l *Address) String() string {
 	var address = []string{
@@ -51,7 +53,7 @@ func (l *Address) String() string {
 func (l *Address) Set(flagValue string) error {
 
 	if flagValue == "" {
-		return errors.New("пустое значение флага")
+		return emptyFlagError
 	}
 
 	flagValue = strings.TrimPrefix(flagValue, "http://")
