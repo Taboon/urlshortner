@@ -40,6 +40,8 @@ func (f *FileBase) Set(flagValue string) error {
 
 var emptyFlagError = errors.New("пустое значение флага")
 
+const baseFilePath = "/tmp/short-url-db.json"
+
 // String должен уметь сериализовать переменную типа в строку.
 func (l *Address) String() string {
 	var address = []string{
@@ -94,7 +96,7 @@ func BuildConfig() *Config {
 		},
 	}
 
-	conf.FileBase.File = "/tmp/short-url-db.json"
+	conf.FileBase.File = baseFilePath
 
 	err := parseEnv(&conf)
 	if err != nil {
