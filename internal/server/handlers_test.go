@@ -132,7 +132,7 @@ func Test_getUrl(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+			Repo: storage.NewMemoryStorage(),
 		},
 	}
 
@@ -200,7 +200,7 @@ func Test_shortenJSON(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+			Repo: storage.NewMemoryStorage(),
 		},
 	}
 
@@ -255,7 +255,7 @@ func TestGzipCompression(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+			Repo: storage.NewMemoryStorage(),
 		},
 	}
 
