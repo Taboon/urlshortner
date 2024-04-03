@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
 	"net/http"
@@ -73,11 +72,13 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := Request{}
-	fmt.Println(string(req))
-	err = json.Unmarshal(req, &body)
-	if err != nil {
-		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return
+
+	if json.Valid(req) {
+		err = json.Unmarshal(req, &body)
+		if err != nil {
+			http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 
 	url, err := s.urlValidator(body.URL)
