@@ -63,18 +63,27 @@ func (l *Address) Set(flagValue string) error {
 
 	address := strings.Split(flagValue, ":")
 
-	for i, v := range address {
-		if i == 0 && v != "" {
-			l.IP = v
-		}
-		if i == 1 && v != "" {
-			port, err := strconv.Atoi(v)
+	//for i, v := range address {
+	//	if i == 0 && v != "" {
+	//		l.IP = v
+	//	}
+	//	if i == 1 && v != "" {
+	//		port, err := strconv.Atoi(v)
+	//
+	//		if err != nil {
+	//			return err
+	//		}
+	//		l.Port = port
+	//	}
+	//}
 
-			if err != nil {
-				return err
-			}
-			l.Port = port
+	if len(address) > 1 {
+		l.IP = address[0]
+		port, err := strconv.Atoi(address[1])
+		if err != nil {
+			return err
 		}
+		l.Port = port
 	}
 
 	return nil

@@ -24,7 +24,7 @@ func main() {
 		stor = storage.NewFileStorage(conf.FileBase.File)
 	} else {
 		logger.Log.Info("Используем внутреннее хранилище")
-		stor = storage.NewInternalStorage()
+		stor = storage.NewMemoryStorage()
 	}
 
 	srv := server.Server{}

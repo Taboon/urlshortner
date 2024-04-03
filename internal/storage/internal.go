@@ -14,7 +14,7 @@ type SafeMap struct {
 
 var _ Repository = (*SafeMap)(nil)
 
-func NewInternalStorage() *SafeMap {
+func NewMemoryStorage() *SafeMap {
 	return &SafeMap{
 		mu:             sync.Mutex{},
 		mapStor:        make(map[string]string),

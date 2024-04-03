@@ -194,7 +194,7 @@ func Test_shortenJSON(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewInternalStorage(),
+		Repo: storage.NewMemoryStorage(),
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
@@ -247,7 +247,7 @@ func TestGzipCompression(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewInternalStorage(),
+		Repo: storage.NewMemoryStorage(),
 	}
 
 	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))

@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"github.com/Taboon/urlshortner/internal/logger"
 	"go.uber.org/zap"
 	"os"
 	"path/filepath"
+
+	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type FileStorage struct {
