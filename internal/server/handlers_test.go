@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -34,10 +35,12 @@ func TestSendUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		P: usecase.URLProcessor{
+			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		},
 	}
 
-	err := s.Repo.AddURL(urlMock)
+	err := s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -86,7 +89,7 @@ func TestSendUrl(t *testing.T) {
 
 			defer resp.Body.Close()
 
-			id, _, err := s.Repo.CheckID("AAAAaaaa")
+			id, _, err := s.P.Repo.CheckID("AAAAaaaa")
 			if err != nil {
 				return
 			}
@@ -128,10 +131,12 @@ func Test_getUrl(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		P: usecase.URLProcessor{
+			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		},
 	}
 
-	err := s.Repo.AddURL(urlMock)
+	err := s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -194,7 +199,9 @@ func Test_shortenJSON(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewMemoryStorage(),
+		P: usecase.URLProcessor{
+			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
@@ -247,7 +254,9 @@ func TestGzipCompression(t *testing.T) {
 				Port: 8080,
 			},
 		},
-		Repo: storage.NewMemoryStorage(),
+		P: usecase.URLProcessor{
+			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+		},
 	}
 
 	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))

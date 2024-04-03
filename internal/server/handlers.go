@@ -9,24 +9,25 @@ import (
 	"strings"
 )
 
-type Request struct {
+type RequestJSON struct {
 	URL string `json:"url"`
 }
 type Response struct {
 	Result string
 }
 
+const (
+	httpPrefix = "http://"
+)
+
 func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	path = strings.Trim(path, "/")
 
-	v, ok, err := s.Repo.CheckID(path)
+	v, err := s.P.Get(path)
 	if err != nil {
-		http.Error(w, "Ошибка при проверке ID", http.StatusBadRequest)
-	}
-	if !ok {
-		http.Error(w, "Отсутствует такой ID", http.StatusBadRequest)
+		http.Error(w, "Не удалось получить URL", http.StatusBadRequest)
 		return
 	}
 
@@ -43,13 +44,13 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := s.urlValidator(string(req))
+	url, err := s.P.UrlValidator(string(req))
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := s.urlSaver(url)
+	id, err := s.P.URLSaver(url)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
@@ -57,13 +58,17 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(httpPrefix + s.Conf.BaseURL.String() + "/" + id))
+
+	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)))
 
 	if err != nil {
 		logger.Log.Error("Ошибка отправки")
 		return
 	}
 }
+
+var requestBody = &RequestJSON{}
+var response = &Response{}
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	req, err := io.ReadAll(r.Body)
@@ -72,29 +77,27 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := Request{}
-
 	if json.Valid(req) {
-		err = json.Unmarshal(req, &body)
+		err = json.Unmarshal(req, &requestBody)
 		if err != nil {
 			http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
 
-	url, err := s.urlValidator(body.URL)
+	url, err := s.P.UrlValidator(requestBody.URL)
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	id, err := s.urlSaver(url)
+	id, err := s.P.URLSaver(url)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	response := Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
+	response = &Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
 
 	resp, err := json.Marshal(response)
 	if err != nil {

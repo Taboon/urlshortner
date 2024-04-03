@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
 	"github.com/Taboon/urlshortner/internal/storage"
@@ -28,9 +29,12 @@ func main() {
 	}
 
 	srv := server.Server{}
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+	}
 
 	srv.Conf = &conf
-	srv.Repo = stor
+	srv.P = urlProcessor
 
 	logger.Log.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.LogLevel))
 
