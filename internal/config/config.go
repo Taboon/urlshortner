@@ -38,7 +38,7 @@ func (f *FileBase) Set(flagValue string) error {
 	return nil
 }
 
-var emptyFlagError = errors.New("пустое значение флага")
+var errEmptyFlag = errors.New("пустое значение флага")
 
 const baseFilePath = "/tmp/short-url-db.json"
 
@@ -55,7 +55,7 @@ func (l *Address) String() string {
 func (l *Address) Set(flagValue string) error {
 
 	if flagValue == "" {
-		return emptyFlagError
+		return errEmptyFlag
 	}
 
 	flagValue = strings.TrimPrefix(flagValue, "http://")
