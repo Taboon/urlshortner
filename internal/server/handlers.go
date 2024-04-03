@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
 	"net/http"
@@ -93,7 +94,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := Response{Result: httpPrefix + s.Conf.BaseURL.String() + "/" + id}
+	response := Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
 
 	resp, err := json.Marshal(response)
 	if err != nil {
