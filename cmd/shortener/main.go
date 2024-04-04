@@ -1,13 +1,14 @@
 package main
 
 import (
+	"go.uber.org/zap"
+	"log"
+
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
 	"github.com/Taboon/urlshortner/internal/storage"
-	"go.uber.org/zap"
-	"log"
 )
 
 func main() {

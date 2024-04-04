@@ -2,12 +2,13 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/go-chi/chi/v5"
-	"net/http"
 )
 
 type Server struct {

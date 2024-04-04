@@ -3,10 +3,11 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type RequestJSON struct {

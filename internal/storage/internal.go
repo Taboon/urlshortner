@@ -2,8 +2,9 @@ package storage
 
 import (
 	"errors"
-	"github.com/Taboon/urlshortner/internal/logger"
 	"sync"
+
+	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type SafeMap struct {

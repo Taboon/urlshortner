@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/domain/usecase"
-	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,8 +11,11 @@ import (
 	"testing"
 
 	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/domain/usecase"
+	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/Taboon/urlshortner/internal/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSendUrl(t *testing.T) {
