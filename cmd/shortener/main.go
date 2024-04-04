@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Taboon/urlshortner/internal/backup"
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
@@ -12,36 +11,34 @@ import (
 )
 
 func main() {
+	//инициализируем конфиг
 	conf := *config.BuildConfig()
 
+	//инициализируем логгер
 	if err := logger.Initialize(conf.LogLevel); err != nil {
 		log.Fatal("Can't set logger")
 	}
 
+	//инициализируем хранилище
 	var stor storage.Repository
-
 	logger.Log.Info("Используем внутреннее хранилище")
 	stor = storage.NewMemoryStorage()
 
-	if conf.FileBase.File != "" {
-		logger.Log.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
-		backuper := backup.ReservFile{FileName: conf.FileBase.File}
-		backuper.Get(&stor)
-	}
-
-	defer func(conf *config.Config) {
-		if conf.FileBase.File != "" {
-			logger.Log.Info("Сохраняем бекап в файл", zap.String("file", conf.FileBase.File))
-			backuper := backup.ReservFile{FileName: conf.FileBase.File}
-			backuper.Get(&stor)
-		}
-	}(&conf)
-
-	srv := server.Server{}
+	//инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
 		Repo: stor,
 	}
 
+	//инициализируем бекап и загружаем из него данные
+	if conf.FileBase.File != "" {
+		logger.Log.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
+		backuper := storage.NewFileStorage(conf.FileBase.File)
+		backuper.Get(&stor)
+		urlProcessor.Backup = backuper
+	}
+
+	//инициализируем сервер
+	srv := server.Server{}
 	srv.Conf = &conf
 	srv.P = urlProcessor
 

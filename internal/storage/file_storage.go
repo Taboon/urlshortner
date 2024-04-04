@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"go.uber.org/zap"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -115,6 +116,33 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 	}
 
 	return URLData{}, false, nil
+}
+
+func (r *FileStorage) Get(repository *Repository) error {
+	file, err := os.OpenFile(r.fileName, os.O_RDONLY|os.O_CREATE, 0774)
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+		}
+	}()
+	if err != nil {
+		return err
+	}
+
+	body, err := io.ReadAll(file)
+	if err != nil {
+		return err
+	}
+
+	if json.Valid(body) {
+		err := json.Unmarshal(body, repository)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (f *FileStorage) RemoveURL(data URLData) error {

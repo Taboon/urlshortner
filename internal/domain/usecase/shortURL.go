@@ -3,11 +3,12 @@ package usecase
 import (
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/logger"
-	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"math/rand"
 	"strings"
+
+	"github.com/Taboon/urlshortner/internal/logger"
+	"github.com/Taboon/urlshortner/internal/storage"
 )
 
 const (
@@ -43,6 +44,12 @@ func (s *URLProcessor) URLSaver(url string) (string, error) {
 	err = s.Repo.AddURL(urlObj)
 	if err != nil {
 		return "", err
+	}
+	if s.Backup != nil {
+		err := s.Backup.AddURL(urlObj)
+		if err != nil {
+			logger.Log.Error("Ошибка сохранения бекапа")
+		}
 	}
 	return id, nil
 }

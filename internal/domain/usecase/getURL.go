@@ -2,12 +2,9 @@ package usecase
 
 import (
 	"errors"
+
 	"github.com/Taboon/urlshortner/internal/storage"
 )
-
-type URLProcessor struct {
-	Repo storage.Repository
-}
 
 var errUnknownID = errors.New("отсутствует такой ID")
 
