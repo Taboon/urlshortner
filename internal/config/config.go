@@ -4,6 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/logger"
+	"go.uber.org/zap"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ type Config struct {
 	BaseURL      Address
 	LogLevel     string
 	FileBase     FileBase
+	Log          *zap.Logger
 }
 
 type Address struct {
@@ -91,9 +94,18 @@ func BuildConfig() *Config {
 		},
 	}
 
+	//conf.Log = *zap.NewNop()
+
+	//инициализируем логгер
+	log, err := logger.Initialize(conf.LogLevel)
+	if err != nil {
+		log.Fatal("Can't set logger")
+	}
+	conf.Log = log
+
 	conf.FileBase.File = baseFilePath
 
-	err := parseEnv(&conf)
+	err = parseEnv(&conf)
 	if err != nil {
 		fmt.Println(err)
 	}

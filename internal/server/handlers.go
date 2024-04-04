@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type RequestJSON struct {
@@ -63,7 +61,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)))
 
 	if err != nil {
-		logger.Log.Error("Ошибка отправки")
+		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 }
@@ -111,7 +109,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(resp)
 
 	if err != nil {
-		logger.Log.Error("Ошибка отправки")
+		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 }

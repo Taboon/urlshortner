@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"strings"
 
-	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/storage"
 )
 
@@ -17,7 +16,7 @@ const (
 )
 
 func (s *URLProcessor) URLValidator(url string) (string, error) {
-	logger.Log.Debug("Валидируем URL")
+	s.Log.Debug("Валидируем URL")
 	url = strings.TrimSpace(url)
 	if !strings.HasPrefix(url, httpPrefix) && !strings.HasPrefix(url, httpsPrefix) {
 		fmt.Println("Это не URL - не указан http:// или https://")
@@ -31,7 +30,7 @@ func (s *URLProcessor) URLValidator(url string) (string, error) {
 }
 
 func (s *URLProcessor) URLSaver(url string) (string, error) {
-	logger.Log.Debug("Сохраняем URL")
+	s.Log.Debug("Сохраняем URL")
 	_, ok, err := s.Repo.CheckURL(url)
 	if err != nil {
 		return "", err
@@ -48,14 +47,14 @@ func (s *URLProcessor) URLSaver(url string) (string, error) {
 	if s.Backup != nil {
 		err := s.Backup.AddURL(urlObj)
 		if err != nil {
-			logger.Log.Error("Ошибка сохранения бекапа")
+			s.Log.Error("Ошибка сохранения бекапа")
 		}
 	}
 	return id, nil
 }
 
 func (s *URLProcessor) generateID() string {
-	logger.Log.Debug("Генерируем ID")
+	s.Log.Debug("Генерируем ID")
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
 	for {
@@ -68,7 +67,7 @@ func (s *URLProcessor) generateID() string {
 		}
 		_, ok, err := s.Repo.CheckID(string(b))
 		if err != nil {
-			logger.Log.Error("Ошибка при проверке ID", zap.Error(err))
+			s.Log.Error("Ошибка при проверке ID", zap.Error(err))
 		}
 		if !ok {
 			return string(b)

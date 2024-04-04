@@ -32,21 +32,21 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
-var Log *zap.Logger = zap.NewNop()
+var log = &zap.Logger{}
 
-func Initialize(level string) error {
+func Initialize(level string) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	cfg := zap.NewProductionConfig()
 	cfg.Level = lvl
 	zl, err := cfg.Build()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	Log = zl
-	return nil
+	log = zl
+	return log, nil
 }
 
 func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
@@ -67,7 +67,7 @@ func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 		method := r.Method
 		h.ServeHTTP(&lw, r)
 		duration := time.Since(start)
-		Log.Info("request",
+		log.Info("request",
 			zap.String("uri", uri),
 			zap.String("method", method),
 			zap.String("duration", strconv.FormatInt(int64(duration), 10)),

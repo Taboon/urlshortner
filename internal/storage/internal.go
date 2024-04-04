@@ -2,20 +2,20 @@ package storage
 
 import (
 	"errors"
+	"go.uber.org/zap"
 	"sync"
-
-	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type SafeMap struct {
 	mu             sync.Mutex
 	mapStor        map[string]string
 	reverseMapStor map[string]string
+	Log            *zap.Logger
 }
 
 var _ Repository = (*SafeMap)(nil)
 
-func NewMemoryStorage() *SafeMap {
+func NewMemoryStorage(logger *zap.Logger) *SafeMap {
 	return &SafeMap{
 		mu:             sync.Mutex{},
 		mapStor:        make(map[string]string),
@@ -24,7 +24,7 @@ func NewMemoryStorage() *SafeMap {
 }
 
 func (sm *SafeMap) AddURL(data URLData) error {
-	logger.Log.Debug("Сохраняем URL")
+	sm.Log.Debug("Сохраняем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
@@ -50,7 +50,7 @@ func (sm *SafeMap) AddURL(data URLData) error {
 }
 
 func (sm *SafeMap) CheckID(id string) (URLData, bool, error) {
-	logger.Log.Debug("Проверяем ID")
+	sm.Log.Debug("Проверяем ID")
 	urlData := URLData{}
 	val, ok := sm.mapStor[id]
 	if ok {
@@ -62,7 +62,7 @@ func (sm *SafeMap) CheckID(id string) (URLData, bool, error) {
 }
 
 func (sm *SafeMap) CheckURL(url string) (URLData, bool, error) {
-	logger.Log.Debug("Проверяем URL")
+	sm.Log.Debug("Проверяем URL")
 	urlData := URLData{}
 	val, ok := sm.reverseMapStor[url]
 	if ok {
@@ -74,7 +74,7 @@ func (sm *SafeMap) CheckURL(url string) (URLData, bool, error) {
 }
 
 func (sm *SafeMap) RemoveURL(data URLData) error {
-	logger.Log.Debug("Удаляем URL")
+	sm.Log.Debug("Удаляем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 

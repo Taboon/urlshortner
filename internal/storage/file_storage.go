@@ -8,22 +8,21 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/Taboon/urlshortner/internal/logger"
 )
 
 type FileStorage struct {
 	fileName string
+	Log      *zap.Logger
 }
 
 var _ Repository = (*FileStorage)(nil)
 
-func NewFileStorage(fileName string) *FileStorage {
+func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
 	err := os.MkdirAll(filepath.Dir(fileName), 0774)
 	if err != nil {
-		logger.Log.Error("Ошибка создания файла")
+		logger.Error("Ошибка создания файла")
 	}
-	logger.Log.Debug("Создали дирректорию", zap.String("dir", filepath.Dir(fileName)))
+	logger.Debug("Создали дирректорию", zap.String("dir", filepath.Dir(fileName)))
 	return &FileStorage{
 		fileName: fileName,
 	}
@@ -34,7 +33,7 @@ func (f *FileStorage) AddURL(data URLData) error {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
 	if err != nil {
@@ -57,7 +56,7 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
 
@@ -90,7 +89,7 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
 
@@ -123,7 +122,7 @@ func (f *FileStorage) Get(repository *Repository) error {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
 	if err != nil {
@@ -150,7 +149,7 @@ func (f *FileStorage) RemoveURL(data URLData) error {
 	defer func() {
 		err := file.Close()
 		if err != nil {
-			logger.Log.Error("Ошибка закрытия файла", zap.Error(err))
+			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
 
