@@ -1,8 +1,9 @@
 package usecase
 
 import (
-	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
+
+	"github.com/Taboon/urlshortner/internal/storage"
 )
 
 type URLProcessor struct {
