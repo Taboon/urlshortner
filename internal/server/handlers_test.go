@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -36,7 +37,7 @@ func TestSendUrl(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewFileStorage("/tmp/tet.txt"),
+			Repo: storage.NewFileStorage("/tmp/tet.txt", &zap.Logger{}),
 		},
 	}
 
@@ -132,7 +133,7 @@ func Test_getUrl(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(),
+			Repo: storage.NewMemoryStorage(&zap.Logger{}),
 		},
 	}
 
@@ -200,7 +201,7 @@ func Test_shortenJSON(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(),
+			Repo: storage.NewMemoryStorage(&zap.Logger{}),
 		},
 	}
 
@@ -255,7 +256,7 @@ func TestGzipCompression(t *testing.T) {
 			},
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(),
+			Repo: storage.NewMemoryStorage(&zap.Logger{}),
 		},
 	}
 
