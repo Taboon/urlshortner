@@ -94,8 +94,6 @@ func BuildConfig() *Config {
 		},
 	}
 
-	//conf.Log = *zap.NewNop()
-
 	//инициализируем логгер
 	log, err := logger.Initialize(conf.LogLevel)
 	if err != nil {

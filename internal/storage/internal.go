@@ -20,6 +20,7 @@ func NewMemoryStorage(logger *zap.Logger) *SafeMap {
 		mu:             sync.Mutex{},
 		mapStor:        make(map[string]string),
 		reverseMapStor: make(map[string]string),
+		Log:            logger,
 	}
 }
 

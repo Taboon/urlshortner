@@ -25,6 +25,7 @@ func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
 	logger.Debug("Создали дирректорию", zap.String("dir", filepath.Dir(fileName)))
 	return &FileStorage{
 		fileName: fileName,
+		Log:      logger,
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,10 +20,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var logTests *zap.Logger
+
+func Initialize(level string) (*zap.Logger, error) {
+	lvl, err := zap.ParseAtomicLevel(level)
+	if err != nil {
+		return nil, err
+	}
+	cfg := zap.NewProductionConfig()
+	cfg.Level = lvl
+	zl, err := cfg.Build()
+	if err != nil {
+		return nil, err
+	}
+	logTests = zl
+	return logTests, nil
+}
+
 func TestSendUrl(t *testing.T) {
 	urlMock := storage.URLData{
 		URL: "http://ya.ru",
 		ID:  "AAAAaaaa",
+	}
+
+	//инициализируем логгер
+	logger, err := Initialize("Info")
+	if err != nil {
+		log.Fatal("Can't set logger")
 	}
 
 	s := Server{
@@ -35,13 +59,15 @@ func TestSendUrl(t *testing.T) {
 				IP:   "127.0.0.1",
 				Port: 8080,
 			},
+			Log: logger,
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewFileStorage("/tmp/tet.txt", &zap.Logger{}),
+			Repo: storage.NewMemoryStorage(logger),
+			Log:  logger,
 		},
 	}
 
-	err := s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -121,6 +147,12 @@ func Test_getUrl(t *testing.T) {
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
 	}
 
+	//инициализируем логгер
+	logger, err := Initialize("Info")
+	if err != nil {
+		log.Fatal("Can't set logger")
+	}
+
 	s := Server{
 		Conf: &config.Config{
 			LocalAddress: config.Address{
@@ -131,13 +163,15 @@ func Test_getUrl(t *testing.T) {
 				IP:   "127.0.0.1",
 				Port: 8080,
 			},
+			Log: logger,
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(&zap.Logger{}),
+			Repo: storage.NewMemoryStorage(logger),
+			Log:  logger,
 		},
 	}
 
-	err := s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -189,6 +223,12 @@ func Test_shortenJSON(t *testing.T) {
 		{name: "test3", request: "{\"url\": \"\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
 
+	//инициализируем логгер
+	logger, err := Initialize("Info")
+	if err != nil {
+		log.Fatal("Can't set logger")
+	}
+
 	s := Server{
 		Conf: &config.Config{
 			LocalAddress: config.Address{
@@ -199,9 +239,11 @@ func Test_shortenJSON(t *testing.T) {
 				IP:   "127.0.0.1",
 				Port: 8080,
 			},
+			Log: logger,
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(&zap.Logger{}),
+			Repo: storage.NewMemoryStorage(logger),
+			Log:  logger,
 		},
 	}
 
@@ -244,6 +286,12 @@ func Test_shortenJSON(t *testing.T) {
 func TestGzipCompression(t *testing.T) {
 	requestBody := `{"url": "https://ya.ru"}`
 
+	//инициализируем логгер
+	logger, err := Initialize("Info")
+	if err != nil {
+		log.Fatal("Can't set logger")
+	}
+
 	s := Server{
 		Conf: &config.Config{
 			LocalAddress: config.Address{
@@ -254,9 +302,11 @@ func TestGzipCompression(t *testing.T) {
 				IP:   "127.0.0.1",
 				Port: 8080,
 			},
+			Log: logger,
 		},
 		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(&zap.Logger{}),
+			Repo: storage.NewMemoryStorage(logger),
+			Log:  logger,
 		},
 	}
 
