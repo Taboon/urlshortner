@@ -113,7 +113,7 @@ func parseEnv(conf *Config) error {
 			return err
 		}
 	}
-	if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
+	if envBasePath := os.Getenv("BASE_URL"); envBasePath != "" {
 		err := conf.BaseURL.Set(envBasePath)
 		if err != nil {
 			return err
