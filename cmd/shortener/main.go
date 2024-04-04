@@ -33,7 +33,10 @@ func main() {
 	if conf.FileBase.File != "" {
 		logger.Log.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
 		backuper := storage.NewFileStorage(conf.FileBase.File)
-		backuper.Get(&stor)
+		err := backuper.Get(&stor)
+		if err != nil {
+			log.Fatal(err)
+		}
 		urlProcessor.Backup = backuper
 	}
 

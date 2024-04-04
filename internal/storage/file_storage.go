@@ -118,8 +118,8 @@ func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 	return URLData{}, false, nil
 }
 
-func (r *FileStorage) Get(repository *Repository) error {
-	file, err := os.OpenFile(r.fileName, os.O_RDONLY|os.O_CREATE, 0774)
+func (f *FileStorage) Get(repository *Repository) error {
+	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE, 0774)
 	defer func() {
 		err := file.Close()
 		if err != nil {
