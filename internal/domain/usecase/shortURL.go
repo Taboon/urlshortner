@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"fmt"
 	"go.uber.org/zap"
 	"math/rand"
 	"strings"
@@ -15,11 +14,11 @@ const (
 	httpsPrefix = "https://"
 )
 
-func (s *URLProcessor) URLValidator(url string) (string, error) {
-	s.Log.Debug("Валидируем URL")
+func (u *URLProcessor) URLValidator(url string) (string, error) {
+	u.Log.Debug("Валидируем URL", zap.String("url", url))
 	url = strings.TrimSpace(url)
 	if !strings.HasPrefix(url, httpPrefix) && !strings.HasPrefix(url, httpsPrefix) {
-		fmt.Println("Это не URL - не указан http:// или https://")
+		u.Log.Error("Ошибка валидации URL", zap.String("url", url))
 		return "", errors.New("URL должен начинаться с http:// или https://")
 	}
 	if !strings.Contains(url, ".") {
@@ -29,32 +28,32 @@ func (s *URLProcessor) URLValidator(url string) (string, error) {
 	return url, nil
 }
 
-func (s *URLProcessor) URLSaver(url string) (string, error) {
-	s.Log.Debug("Сохраняем URL")
-	_, ok, err := s.Repo.CheckURL(url)
+func (u *URLProcessor) URLSaver(url string) (string, error) {
+	u.Log.Debug("Сохраняем URL")
+	_, ok, err := u.Repo.CheckURL(url)
 	if err != nil {
 		return "", err
 	}
 	if ok {
 		return "", errors.New("url already exist")
 	}
-	id := s.generateID()
+	id := u.generateID()
 	urlObj := storage.URLData{URL: url, ID: id}
-	err = s.Repo.AddURL(urlObj)
+	err = u.Repo.AddURL(urlObj)
 	if err != nil {
 		return "", err
 	}
-	if s.Backup != nil {
-		err := s.Backup.AddURL(urlObj)
+	if u.Backup != nil {
+		err := u.Backup.AddURL(urlObj)
 		if err != nil {
-			s.Log.Error("Ошибка сохранения бекапа")
+			u.Log.Error("Ошибка сохранения бекапа")
 		}
 	}
 	return id, nil
 }
 
-func (s *URLProcessor) generateID() string {
-	s.Log.Debug("Генерируем ID")
+func (u *URLProcessor) generateID() string {
+	u.Log.Debug("Генерируем ID")
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
 	for {
@@ -65,9 +64,9 @@ func (s *URLProcessor) generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		_, ok, err := s.Repo.CheckID(string(b))
+		_, ok, err := u.Repo.CheckID(string(b))
 		if err != nil {
-			s.Log.Error("Ошибка при проверке ID", zap.Error(err))
+			u.Log.Error("Ошибка при проверке ID", zap.Error(err))
 		}
 		if !ok {
 			return string(b)

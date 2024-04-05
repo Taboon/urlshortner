@@ -14,6 +14,7 @@ import (
 type Server struct {
 	Conf *config.Config
 	P    usecase.URLProcessor
+	Log  *logger.Logger
 }
 
 func (s *Server) Run() error {
@@ -27,8 +28,8 @@ func (s *Server) Run() error {
 func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", logger.RequestLogger(gzip.GzipMiddleware(s.sendURL)))
-	r.Post("/", logger.RequestLogger(gzip.GzipMiddleware(s.getURL)))
-	r.Post("/api/shorten", logger.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
+	r.Get("/{id}", s.Log.RequestLogger(gzip.GzipMiddleware(s.sendURL)))
+	r.Post("/", s.Log.RequestLogger(gzip.GzipMiddleware(s.getURL)))
+	r.Post("/api/shorten", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
 	return r
 }

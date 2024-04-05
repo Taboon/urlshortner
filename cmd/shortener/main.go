@@ -10,25 +10,35 @@ import (
 	"github.com/Taboon/urlshortner/internal/storage"
 )
 
+const baseFilePath = "/tmp/short-url-db.json"
+
 func main() {
+
 	//инициализируем конфиг
-	conf := *config.BuildConfig()
+	configBuilder := config.NewConfigBuilder()
+	configBuilder.SetLocalAddress("127.0.0.1", 8080)
+	configBuilder.SetBaseURL("127.0.0.1", 8080)
+	configBuilder.SetFileBase(baseFilePath)
+	configBuilder.SetLogger("Info")
+	configBuilder.ParseEnv()
+	configBuilder.ParseFlag()
+	conf := configBuilder.Build()
 
 	//инициализируем хранилище
 	var stor storage.Repository
 	conf.Log.Info("Используем внутреннее хранилище")
-	stor = storage.NewMemoryStorage(conf.Log)
+	stor = storage.NewMemoryStorage(conf.Log.Logger)
 
 	//инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
 		Repo: stor,
-		Log:  conf.Log,
+		Log:  conf.Log.Logger,
 	}
 
 	//инициализируем бекап и загружаем из него данные
 	if conf.FileBase.File != "" {
 		conf.Log.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
-		backuper := storage.NewFileStorage(conf.FileBase.File, conf.Log)
+		backuper := storage.NewFileStorage(conf.FileBase.File, conf.Log.Logger)
 		err := backuper.Get(&stor)
 		if err != nil {
 			log.Fatal(err)
@@ -37,11 +47,13 @@ func main() {
 	}
 
 	//инициализируем сервер
-	srv := server.Server{}
-	srv.Conf = &conf
-	srv.P = urlProcessor
+	srv := server.Server{
+		Conf: conf,
+		P:    urlProcessor,
+		Log:  conf.Log,
+	}
 
-	conf.Log.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.LogLevel))
+	conf.Log.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.Log.LogLevel))
 
 	if err := srv.Run(); err != nil {
 		log.Fatal(err)
