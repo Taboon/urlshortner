@@ -1,4 +1,4 @@
-package customError
+package entity
 
 import "errors"
 
