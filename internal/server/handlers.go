@@ -89,7 +89,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if requestBody.URL == "" {
-		http.Error(w, "Пустой URL: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "Пустой URL", http.StatusBadRequest)
 		return
 	}
 
