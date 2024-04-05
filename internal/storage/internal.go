@@ -24,6 +24,10 @@ func NewMemoryStorage(logger *zap.Logger) *SafeMap {
 	}
 }
 
+func (sm *SafeMap) Ping() error {
+	return nil
+}
+
 func (sm *SafeMap) AddURL(data URLData) error {
 	sm.Log.Debug("Сохраняем URL")
 	sm.mu.Lock()

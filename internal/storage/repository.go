@@ -13,6 +13,9 @@ type Repository interface {
 	// RemoveURL удаляет указанный URLData из репозитория.
 	// Возвращает ошибку, если не удалось удалить URLData.
 	RemoveURL(data URLData) error
+	// Ping проверяет соединение с БД
+	// Возвращает 200 или 500
+	Ping() error
 }
 
 type URLData struct {

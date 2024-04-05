@@ -29,6 +29,10 @@ func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
 	}
 }
 
+func (f *FileStorage) Ping() error {
+	return nil
+}
+
 func (f *FileStorage) AddURL(data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {

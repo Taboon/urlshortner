@@ -16,8 +16,8 @@ func main() {
 
 	//инициализируем хранилище
 	var stor storage.Repository
-	conf.Log.Info("Используем внутреннее хранилище")
-	stor = storage.NewMemoryStorage(conf.Log)
+	//conf.Log.Info("Используем внутреннее хранилище")
+	stor = storage.NewPostgreBase("urlshortnerdb", "postgres", "1101", "192.168.31.40", "5432", conf.Log)
 
 	//инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
@@ -42,7 +42,7 @@ func main() {
 	srv.P = urlProcessor
 
 	conf.Log.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.LogLevel))
-
+	stor.Ping()
 	if err := srv.Run(); err != nil {
 		log.Fatal(err)
 	}

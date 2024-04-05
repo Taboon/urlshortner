@@ -35,6 +35,15 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
+	err := s.P.Ping()
+	if err != nil {
+		http.Error(w, "Ошибка при подключении к базе данных", http.StatusInternalServerError)
+	}
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	req, err := io.ReadAll(r.Body)
