@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/custom_error"
+	"github.com/Taboon/urlshortner/internal/customError"
 	"strconv"
 	"strings"
 )
@@ -25,7 +25,7 @@ func (l *Address) String() string {
 func (l *Address) Set(flagValue string) error {
 
 	if flagValue == "" {
-		return custom_error.ErrEmptyFlag
+		return customError.ErrEmptyFlag
 	}
 
 	flagValue = strings.TrimPrefix(flagValue, "http://")

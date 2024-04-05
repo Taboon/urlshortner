@@ -92,7 +92,7 @@ func (sm *SafeMap) RemoveURL(data URLData) error {
 			return nil
 		}
 	}
-	err := errors.New("removing custom_error")
+	err := errors.New("removing customError")
 	return err
 }
 
