@@ -19,6 +19,11 @@ type (
 	}
 )
 
+type Logger struct {
+	LogLevel string
+	*zap.Logger
+}
+
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
@@ -32,24 +37,25 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
-var log = &zap.Logger{}
-
-func Initialize(level string) (*zap.Logger, error) {
+func Initialize(level string) (*Logger, error) {
+	var logger = &Logger{
+		LogLevel: level,
+	}
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		return nil, err
+		return logger, err
 	}
 	cfg := zap.NewProductionConfig()
 	cfg.Level = lvl
 	zl, err := cfg.Build()
 	if err != nil {
-		return nil, err
+		return logger, err
 	}
-	log = zl
-	return log, nil
+	logger.Logger = zl
+	return logger, nil
 }
 
-func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
+func (l *Logger) RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -67,7 +73,7 @@ func RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 		method := r.Method
 		h.ServeHTTP(&lw, r)
 		duration := time.Since(start)
-		log.Info("request",
+		l.Info("request",
 			zap.String("uri", uri),
 			zap.String("method", method),
 			zap.String("duration", strconv.FormatInt(int64(duration), 10)),

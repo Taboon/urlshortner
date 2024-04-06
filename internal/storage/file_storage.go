@@ -68,21 +68,18 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 	if err != nil {
 		return URLData{}, false, err
 	}
+
 	scanner := bufio.NewScanner(file)
-	var shortUrls []URLData
+
+	var url *URLData
 
 	for scanner.Scan() {
-		var url URLData
 		err := json.Unmarshal(scanner.Bytes(), &url)
 		if err != nil {
 			return URLData{}, false, err
 		}
-		shortUrls = append(shortUrls, url)
-	}
-
-	for _, v := range shortUrls {
-		if v.ID == id {
-			return v, true, nil
+		if url.ID == id {
+			return *url, true, nil
 		}
 	}
 

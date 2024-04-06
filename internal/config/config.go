@@ -1,119 +1,89 @@
 package config
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
-	"go.uber.org/zap"
+	"log"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type Config struct {
 	LocalAddress Address
 	BaseURL      Address
-	LogLevel     string
 	FileBase     FileBase
-	Log          *zap.Logger
+	Log          *logger.Logger
 }
 
-type Address struct {
-	IP   string
-	Port int
+type ConfigBuilder interface {
+	SetLocalAddress(ip string, port int) ConfigBuilder
+	SetBaseURL(ip string, port int) ConfigBuilder
+	SetFileBase(path string) ConfigBuilder
+	SetLogger(level string) ConfigBuilder
+	ParseFlag() ConfigBuilder
+	ParseEnv() ConfigBuilder
+	Build() *Config
 }
 
-type FileBase struct {
-	File string
+type configBuilder struct {
+	config *Config
 }
 
-func (f *FileBase) String() string {
-	return f.File
+func (c *configBuilder) SetLocalAddress(ip string, port int) ConfigBuilder {
+	c.config.LocalAddress.IP = ip
+	c.config.LocalAddress.Port = port
+	return c
 }
 
-func (f *FileBase) Set(flagValue string) error {
-	if flagValue == "" {
-		f.File = ""
-		return nil
+func (c *configBuilder) SetBaseURL(ip string, port int) ConfigBuilder {
+	c.config.BaseURL.IP = ip
+	c.config.BaseURL.Port = port
+	return c
+}
+
+func (c *configBuilder) SetFileBase(path string) ConfigBuilder {
+	c.config.FileBase.File = path
+	return c
+}
+
+func (c *configBuilder) SetLogger(level string) ConfigBuilder {
+	l, err := logger.Initialize(level)
+	if err != nil {
+		log.Fatal("Can't set logger")
 	}
-	f.File = flagValue
-	return nil
+	c.config.Log = l
+	return c
 }
 
-var errEmptyFlag = errors.New("пустое значение флага")
-
-const baseFilePath = "/tmp/short-url-db.json"
-
-// String должен уметь сериализовать переменную типа в строку.
-func (l *Address) String() string {
-	var address = []string{
-		l.IP, fmt.Sprint(l.Port),
+func (c *configBuilder) ParseFlag() ConfigBuilder {
+	err := parseEnv(c.config)
+	if err != nil {
+		fmt.Println(err)
 	}
-	return fmt.Sprint(strings.Join(address, ":"))
+	return c
 }
 
-// Set связывает переменную типа со значением флага
-// и устанавливает правила парсинга для пользовательского типа.
-func (l *Address) Set(flagValue string) error {
-
-	if flagValue == "" {
-		return errEmptyFlag
+func (c *configBuilder) ParseEnv() ConfigBuilder {
+	err := parseFlags(c.config)
+	if err != nil {
+		fmt.Println(err)
 	}
+	return c
+}
 
-	flagValue = strings.TrimPrefix(flagValue, "http://")
-	flagValue = strings.TrimPrefix(flagValue, "https://")
+func (c *configBuilder) Build() *Config {
+	return c.config
+}
 
-	address := strings.Split(flagValue, ":")
-
-	if len(address) > 1 {
-		l.IP = address[0]
-		port, err := strconv.Atoi(address[1])
-		if err != nil {
-			return err
-		}
-		l.Port = port
+func NewConfigBuilder() ConfigBuilder {
+	return &configBuilder{
+		config: &Config{},
 	}
-
-	return nil
 }
 
 func (c *Config) URL() string {
 	return fmt.Sprintf("%v:%v", c.LocalAddress.IP, strconv.Itoa(c.LocalAddress.Port))
-}
-
-func BuildConfig() *Config {
-	conf := Config{
-		LocalAddress: Address{
-			"127.0.0.1",
-			8080,
-		},
-		BaseURL: Address{
-			"127.0.0.1",
-			8080,
-		},
-	}
-
-	//инициализируем логгер
-	log, err := logger.Initialize(conf.LogLevel)
-	if err != nil {
-		log.Fatal("Can't set logger")
-	}
-	conf.Log = log
-
-	conf.FileBase.File = baseFilePath
-
-	err = parseEnv(&conf)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = parseFlags(&conf)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	return &conf
 }
 
 func parseEnv(conf *Config) error {
@@ -136,13 +106,10 @@ func parseEnv(conf *Config) error {
 }
 
 func parseFlags(conf *Config) error {
-
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
-	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
-
+	flag.StringVar(&conf.Log.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 	flag.Parse()
-
 	return nil
 }

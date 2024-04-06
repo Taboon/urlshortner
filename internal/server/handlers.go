@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
@@ -75,8 +76,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var requestBody = &RequestJSON{}
-var response = &Response{}
+var requestBody = RequestJSON{}
+var response = Response{}
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	req, err := io.ReadAll(r.Body)
@@ -85,13 +86,23 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if json.Valid(req) {
-		err = json.Unmarshal(req, &requestBody)
-		if err != nil {
-			http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-			return
-		}
+	if !json.Valid(req) {
+		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
+		return
 	}
+
+	err = json.Unmarshal(req, &requestBody)
+	if err != nil {
+		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if requestBody.URL == "" {
+		http.Error(w, "Пустой URL", http.StatusBadRequest)
+		return
+	}
+
+	s.Log.Debug("Пытаемся проверить", zap.String("url", requestBody.URL))
 
 	url, err := s.P.URLValidator(requestBody.URL)
 	if err != nil {
@@ -105,7 +116,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response = &Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
+	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
 
 	resp, err := json.Marshal(response)
 	if err != nil {
