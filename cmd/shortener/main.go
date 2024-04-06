@@ -13,7 +13,6 @@ import (
 const baseFilePath = "/tmp/short-url-db.json"
 
 func main() {
-
 	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
@@ -27,7 +26,7 @@ func main() {
 	//инициализируем хранилище
 	var stor storage.Repository
 	conf.Log.Info("Используем внутреннее хранилище")
-	stor = storage.NewMemoryStorage(conf.Log.Logger)
+	stor = storage.NewPostgreBase("urlshortnerdb", "postgres", "1101", "192.168.31.40", "5432", conf.Log.Logger)
 
 	//инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
