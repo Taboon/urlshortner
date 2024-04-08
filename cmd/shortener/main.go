@@ -35,26 +35,22 @@ func main() {
 
 	//инициализируем хранилище
 	var stor storage.Repository
-	l.Info("Используем Postgre")
-	//stor = storage.NewPostgreBase("urlshortnerdb", "postgres", "1101", "192.168.31.40", "5432", conf.Log.Logger)
 
-	//ps := fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=disable", `192.168.31.40:5432`, `postgres`, `1101`, `urlshortnerdb`)
-
-	//db, err := sql.Open("pgx", ps)
-	//if err != nil {
-	//	fmt.Println("Нет коннекта")
-	//	panic(err)
-	//}
-	//defer db.Close()
-
-	urlExample := "postgres://postgres:1101@192.168.31.40:5432/urlshortnerdb"
-	db, err := pgx.Connect(context.Background(), urlExample)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+	switch {
+	case conf.DataDase != "":
+		//urlExample := "postgres://postgres:1101@192.168.31.40:5432/urlshortnerdb"
+		db, err := pgx.Connect(context.Background(), conf.DataDase)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+			os.Exit(1)
+		}
+		defer db.Close(context.Background())
+		stor = storage.NewPostgreBase(db, l)
+		l.Info("Использем Postge")
+	default:
+		stor = storage.NewMemoryStorage(l)
+		l.Info("Использем память приложения для хранения")
 	}
-	defer db.Close(context.Background())
-	stor = storage.NewPostgreBase(db, l)
 
 	//инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{

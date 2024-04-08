@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
+	"time"
 )
 
 type Postgre struct {
@@ -23,11 +24,10 @@ func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
 }
 
 func (p *Postgre) Ping() error {
-	fmt.Println("Вызов")
 	p.Log.Debug("Проверяем статус соединения с БД")
-	//ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	//defer cancel()
-	if err := p.db.Ping(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	if err := p.db.Ping(ctx); err != nil {
 		p.Log.Debug("Ошибка соединения с БД")
 		fmt.Println(err)
 		return err
