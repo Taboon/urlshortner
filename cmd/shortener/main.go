@@ -75,7 +75,7 @@ func main() {
 		BaseURL:      conf.BaseURL.String(),
 		P:            urlProcessor,
 		Log: &logger.Logger{
-			l,
+			Logger: l,
 		},
 	}
 

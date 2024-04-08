@@ -1,5 +1,5 @@
 package usecase
 
-func (s *URLProcessor) Ping() error {
-	return s.Repo.Ping()
+func (u *URLProcessor) Ping() error {
+	return u.Repo.Ping()
 }

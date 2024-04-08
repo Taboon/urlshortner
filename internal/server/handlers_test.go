@@ -51,7 +51,7 @@ func TestSendUrl(t *testing.T) {
 		BaseURL:      conf.BaseURL.String(),
 		P:            urlProcessor,
 		Log: &logger.Logger{
-			l,
+			Logger: l,
 		},
 	}
 
@@ -160,7 +160,7 @@ func Test_getUrl(t *testing.T) {
 		BaseURL:      conf.BaseURL.String(),
 		P:            urlProcessor,
 		Log: &logger.Logger{
-			l,
+			Logger: l,
 		},
 	}
 
@@ -241,7 +241,7 @@ func Test_shortenJSON(t *testing.T) {
 		BaseURL:      conf.BaseURL.String(),
 		P:            urlProcessor,
 		Log: &logger.Logger{
-			l,
+			Logger: l,
 		},
 	}
 
@@ -309,7 +309,7 @@ func TestGzipCompression(t *testing.T) {
 		BaseURL:      conf.BaseURL.String(),
 		P:            urlProcessor,
 		Log: &logger.Logger{
-			l,
+			Logger: l,
 		},
 	}
 
