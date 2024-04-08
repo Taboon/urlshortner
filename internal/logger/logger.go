@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"github.com/Taboon/urlshortner/internal/config"
 	"go.uber.org/zap"
 	"net/http"
 	"strconv"
@@ -20,7 +21,6 @@ type (
 )
 
 type Logger struct {
-	LogLevel string
 	*zap.Logger
 }
 
@@ -37,11 +37,9 @@ func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.responseData.status = statusCode // захватываем код статуса
 }
 
-func Initialize(level string) (*Logger, error) {
-	var logger = &Logger{
-		LogLevel: level,
-	}
-	lvl, err := zap.ParseAtomicLevel(level)
+func Initialize(conf config.Config) (*zap.Logger, error) {
+	var logger = &zap.Logger{}
+	lvl, err := zap.ParseAtomicLevel(conf.LogLevel)
 	if err != nil {
 		return logger, err
 	}
@@ -51,7 +49,7 @@ func Initialize(level string) (*Logger, error) {
 	if err != nil {
 		return logger, err
 	}
-	logger.Logger = zl
+	logger = zl
 	return logger, nil
 }
 

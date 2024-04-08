@@ -39,7 +39,7 @@ func TestBuildConfig(t *testing.T) {
 		t.Errorf("Expected base URL to be localhost:8081, got %s", conf.BaseURL.String())
 	}
 
-	if conf.Log.LogLevel != "debug" {
-		t.Errorf("Expected log level to be debug, got %s", conf.Log.LogLevel)
+	if conf.LogLevel != "debug" {
+		t.Errorf("Expected log level to be debug, got %s", conf.LogLevel)
 	}
 }

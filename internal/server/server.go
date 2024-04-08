@@ -2,23 +2,24 @@ package server
 
 import (
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/logger"
 	"net/http"
 
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
-	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	Conf *config.Config
-	P    usecase.URLProcessor
-	Log  *logger.Logger
+	BaseURL      string
+	LocalAddress string
+	P            usecase.URLProcessor
+	Log          *logger.Logger
 }
 
-func (s *Server) Run() error {
-	err := http.ListenAndServe(s.Conf.URL(), s.URLRouter())
+func (s *Server) Run(la config.Address) error {
+	err := http.ListenAndServe(la.String(), s.URLRouter())
 	if err != nil {
 		return fmt.Errorf("ошибка запуска сервера: %v", err)
 	}

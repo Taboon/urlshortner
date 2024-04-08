@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -24,23 +26,36 @@ func TestSendUrl(t *testing.T) {
 		ID:  "AAAAaaaa",
 	}
 
+	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
 	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
 	s := Server{
-		Conf: conf,
-		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(conf.Log.Logger),
-			Log:  conf.Log.Logger,
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			l,
 		},
-		Log: conf.Log,
 	}
 
-	err := s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -120,24 +135,36 @@ func Test_getUrl(t *testing.T) {
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
 	}
 
-	//инициализируем логгер
+	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
 	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
 	s := Server{
-		Conf: conf,
-		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(conf.Log.Logger),
-			Log:  conf.Log.Logger,
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			l,
 		},
-		Log: conf.Log,
 	}
 
-	err := s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -189,21 +216,33 @@ func Test_shortenJSON(t *testing.T) {
 		{name: "test4", request: "{\"url\": \"\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
 
-	//инициализируем логгер
+	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Debug")
+	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
 	s := Server{
-		Conf: conf,
-		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(conf.Log.Logger),
-			Log:  conf.Log.Logger,
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			l,
 		},
-		Log: conf.Log,
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
@@ -245,21 +284,33 @@ func Test_shortenJSON(t *testing.T) {
 func TestGzipCompression(t *testing.T) {
 	requestBody := `{"url": "https://ya.ru"}`
 
-	//инициализируем логгер
+	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
 	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
 	s := Server{
-		Conf: conf,
-		P: usecase.URLProcessor{
-			Repo: storage.NewMemoryStorage(conf.Log.Logger),
-			Log:  conf.Log.Logger,
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			l,
 		},
-		Log: conf.Log,
 	}
 
 	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))

@@ -2,27 +2,20 @@ package storage
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Postgre struct {
-	db  *sql.DB
+	db  *pgx.Conn
 	Log *zap.Logger
 }
 
 var _ Repository = (*Postgre)(nil)
 
-func NewPostgreBase(name string, login string, pass string, ip string, port string, log *zap.Logger) *Postgre {
-	ps := fmt.Sprintf("host=%s:%s user=%s password=%s dbname=%s sslmode=disable", ip, port, login, pass, name)
-	fmt.Println(ps)
-	db, err := sql.Open("pgx", ps)
-	if err != nil {
-		panic(err)
-	}
+func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
 	return &Postgre{
 		db:  db,
 		Log: log,
@@ -30,14 +23,16 @@ func NewPostgreBase(name string, login string, pass string, ip string, port stri
 }
 
 func (p *Postgre) Ping() error {
-	p.Log.Info("Проверяем статус соединения с БД")
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	if err := p.db.PingContext(ctx); err != nil {
-		p.Log.Info("Ошибка соединения с БД")
+	fmt.Println("Вызов")
+	p.Log.Debug("Проверяем статус соединения с БД")
+	//ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	//defer cancel()
+	if err := p.db.Ping(context.Background()); err != nil {
+		p.Log.Debug("Ошибка соединения с БД")
+		fmt.Println(err)
 		return err
 	}
-	p.Log.Info("Есть соединение с БД")
+	p.Log.Debug("Есть соединение с БД")
 	return nil
 }
 

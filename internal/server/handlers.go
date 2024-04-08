@@ -68,7 +68,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)))
+	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
 
 	if err != nil {
 		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
@@ -116,7 +116,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.Conf.BaseURL.String(), id)}
+	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
 
 	resp, err := json.Marshal(response)
 	if err != nil {

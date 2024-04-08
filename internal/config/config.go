@@ -3,8 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/logger"
-	"log"
 	"os"
 	"strconv"
 )
@@ -13,7 +11,7 @@ type Config struct {
 	LocalAddress Address
 	BaseURL      Address
 	FileBase     FileBase
-	Log          *logger.Logger
+	LogLevel     string
 }
 
 type ConfigBuilder interface {
@@ -48,11 +46,7 @@ func (c *configBuilder) SetFileBase(path string) ConfigBuilder {
 }
 
 func (c *configBuilder) SetLogger(level string) ConfigBuilder {
-	l, err := logger.Initialize(level)
-	if err != nil {
-		log.Fatal("Can't set logger")
-	}
-	c.config.Log = l
+	c.config.LogLevel = level
 	return c
 }
 
@@ -109,7 +103,7 @@ func parseFlags(conf *Config) error {
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
-	flag.StringVar(&conf.Log.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
+	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 	flag.Parse()
 	return nil
 }
