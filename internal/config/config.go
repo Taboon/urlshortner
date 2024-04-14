@@ -1,115 +1,113 @@
 package config
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 )
 
 type Config struct {
 	LocalAddress Address
 	BaseURL      Address
+	FileBase     FileBase
+	DataDase     string
+	LogLevel     string
 }
 
-type Address struct {
-	IP   string
-	Port int
+type ConfigBuilder interface {
+	SetLocalAddress(ip string, port int) ConfigBuilder
+	SetBaseURL(ip string, port int) ConfigBuilder
+	SetFileBase(path string) ConfigBuilder
+	SetLogger(level string) ConfigBuilder
+	ParseFlag() ConfigBuilder
+	ParseEnv() ConfigBuilder
+	Build() *Config
 }
 
-// String должен уметь сериализовать переменную типа в строку.
-func (l *Address) String() string {
-	var address = []string{
-		l.IP, fmt.Sprint(l.Port),
-	}
-	return fmt.Sprint(strings.Join(address, ":"))
+type configBuilder struct {
+	config *Config
 }
 
-// Set связывает переменную типа со значением флага
-// и устанавливает правила парсинга для пользовательского типа.
-func (l *Address) Set(flagValue string) error {
+func (c *configBuilder) SetLocalAddress(ip string, port int) ConfigBuilder {
+	c.config.LocalAddress.IP = ip
+	c.config.LocalAddress.Port = port
+	return c
+}
 
-	flagValue = strings.TrimPrefix(flagValue, "http://")
-	flagValue = strings.TrimPrefix(flagValue, "https://")
+func (c *configBuilder) SetBaseURL(ip string, port int) ConfigBuilder {
+	c.config.BaseURL.IP = ip
+	c.config.BaseURL.Port = port
+	return c
+}
 
-	address := strings.Split(flagValue, ":")
-	if address[0] == "" {
-		err := errors.New("wrong adress")
-		return err
-	}
-	l.IP = address[0]
+func (c *configBuilder) SetFileBase(path string) ConfigBuilder {
+	c.config.FileBase.File = path
+	return c
+}
 
-	if address[1] == "" {
-		err := errors.New("wrong port")
-		return err
-	}
-	port, err := strconv.Atoi(address[1])
+func (c *configBuilder) SetLogger(level string) ConfigBuilder {
+	c.config.LogLevel = level
+	return c
+}
 
+func (c *configBuilder) ParseFlag() ConfigBuilder {
+	err := parseEnv(c.config)
 	if err != nil {
-		return err
+		fmt.Println(err)
 	}
-	l.Port = port
-	return nil
+	return c
+}
+
+func (c *configBuilder) ParseEnv() ConfigBuilder {
+	err := parseFlags(c.config)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return c
+}
+
+func (c *configBuilder) Build() *Config {
+	return c.config
+}
+func NewConfigBuilder() ConfigBuilder {
+	return &configBuilder{
+		config: &Config{},
+	}
 }
 
 func (c *Config) URL() string {
 	return fmt.Sprintf("%v:%v", c.LocalAddress.IP, strconv.Itoa(c.LocalAddress.Port))
 }
 
-func (c *Config) BuildConfig() Config {
-	conf := Config{
-		LocalAddress: Address{
-			"127.0.0.1",
-			8080,
-		},
-		BaseURL: Address{
-			"127.0.0.1",
-			8080,
-		},
-	}
-
-	err := c.parseEnv(&conf)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = c.parseFlags(&conf)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fmt.Println("Config:", conf)
-
-	return conf
-}
-
-func (c *Config) parseEnv(conf *Config) error {
+func parseEnv(conf *Config) error {
 	if envRunAddr := os.Getenv("SERVER_ADDRESS"); envRunAddr != "" {
 		err := conf.LocalAddress.Set(envRunAddr)
 		if err != nil {
 			return err
 		}
-		if envBasePath := os.Getenv("RUN_ADDR"); envBasePath != "" {
-			err := conf.BaseURL.Set(envBasePath)
-			if err != nil {
-				return err
-			}
+	}
+	if envBasePath := os.Getenv("BASE_URL"); envBasePath != "" {
+		err := conf.BaseURL.Set(envBasePath)
+		if err != nil {
+			return err
 		}
+	}
+	if envBasePath := os.Getenv("FILE_STORAGE_PATH"); envBasePath != "" {
+		conf.FileBase.File = envBasePath
+	}
+	if envDBAddres := os.Getenv("DATABASE_DSN"); envDBAddres != "" {
+		conf.DataDase = envDBAddres
 	}
 	return nil
 }
 
-func (c *Config) parseFlags(conf *Config) error {
-
+func parseFlags(conf *Config) error {
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
+	flag.StringVar(&conf.DataDase, "d", "", "data base url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
-
+	flag.Var(&conf.FileBase, "f", "file base path")
+	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 	flag.Parse()
-
-	fmt.Printf("Server started on: %v:%v\n", conf.LocalAddress.IP, conf.LocalAddress.Port)
-	fmt.Printf("Base URL: %v:%v\n", conf.BaseURL.IP, conf.BaseURL.Port)
-
 	return nil
 }
