@@ -45,7 +45,20 @@ func main() {
 			os.Exit(1)
 		}
 		defer db.Close(context.Background())
+
 		stor = storage.NewPostgreBase(db, l)
+		err = stor.Ping()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't connect to database: %v\n", err)
+			os.Exit(1)
+		}
+
+		err = storage.CheckDB(db)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't created table: %v\n", err)
+			os.Exit(1)
+		}
+
 		l.Info("Использем Postge")
 	default:
 		stor = storage.NewMemoryStorage(l)

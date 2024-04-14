@@ -23,6 +23,7 @@ const (
 func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
+	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
 
 	v, err := s.P.Get(path)
