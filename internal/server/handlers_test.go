@@ -132,7 +132,7 @@ func Test_getUrl(t *testing.T) {
 	}{
 		{name: "test1", method: http.MethodPost, body: "http://ya2.ru", contentType: "text/plain", expectedCode: http.StatusCreated},
 		{name: "test2", method: http.MethodPost, body: "htt://ya2.ru", contentType: "", expectedCode: http.StatusBadRequest},
-		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
+		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusConflict},
 	}
 
 	//инициализируем конфиг
@@ -351,7 +351,7 @@ func TestGzipCompression(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(r)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		require.Equal(t, http.StatusConflict, resp.StatusCode)
 
 		defer resp.Body.Close()
 
