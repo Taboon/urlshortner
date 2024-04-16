@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	//"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
@@ -53,7 +52,6 @@ func (p *Postgre) AddURL(data URLData) error {
 	defer cancel()
 	_, err := p.db.Exec(ctx, "INSERT INTO urls (id, url) VALUES ($1, $2)", data.ID, data.URL)
 	if err != nil {
-		p.Log.Error("Ошибка при добавлении нового пользователя", zap.Error(err))
 		return err
 	}
 	return nil
@@ -136,7 +134,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 	// Создание временной таблицы для урлов
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		fmt.Println("Error beginning transaction:", err)
+		p.Log.Error("Error beginning transaction:", zap.Error(err))
 		return nil, err
 	}
 	defer func() {
@@ -146,7 +144,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 
 	_, err = tx.Exec(context.Background(), "CREATE TEMP TABLE temp_urls (url TEXT)")
 	if err != nil {
-		fmt.Println("Error creating temporary table:", err)
+		p.Log.Error("Error creating temporary table:", zap.Error(err))
 		return nil, err
 	}
 
@@ -168,7 +166,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 
 	_, err = tx.Exec(context.Background(), "INSERT INTO temp_urls (url) VALUES "+queryInsert, values...)
 	if err != nil {
-		fmt.Println("Error inserting urls into temporary table:", err)
+		p.Log.Error("Error inserting urls into temporary table:", zap.Error(err))
 		return nil, err
 	}
 
@@ -176,7 +174,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 	query := "SELECT url FROM temp_urls tu WHERE EXISTS (SELECT 1 FROM urls u WHERE u.url = tu.url)"
 	rows, err := p.db.Query(context.Background(), query)
 	if err != nil {
-		fmt.Println("Error querying database:", err)
+		p.Log.Error("Error querying database:", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -186,7 +184,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 		var url string
 		err := rows.Scan(&url)
 		if err != nil {
-			fmt.Println("Error scanning row:", err)
+			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
 		}
 		existingUrls[url] = true

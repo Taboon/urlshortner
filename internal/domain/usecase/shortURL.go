@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"fmt"
+	"errors"
 	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"math/rand"
@@ -55,14 +55,14 @@ func (u *URLProcessor) BatchURLValidator(urls *[]storage.ReqBatchJSON) *[]storag
 func (u *URLProcessor) URLSaver(url string) (string, error) {
 	u.Log.Debug("Сохраняем URL")
 
-	_, ok, err := u.Repo.CheckURL(url)
+	data, ok, err := u.Repo.CheckURL(url)
 
 	if err != nil {
 		return "", err
 	}
 
 	if ok {
-		return "", entity.ErrURLExist
+		return data.ID, entity.ErrURLExist
 	}
 
 	id := u.generateID()
@@ -72,6 +72,9 @@ func (u *URLProcessor) URLSaver(url string) (string, error) {
 	err = u.Repo.AddURL(urlObj)
 
 	if err != nil {
+		if errors.Is(err, entity.ErrURLExist) {
+			return "", err
+		}
 		return "", err
 	}
 
@@ -87,7 +90,6 @@ func (u *URLProcessor) URLSaver(url string) (string, error) {
 
 func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]storage.ReqBatchJSON, error) {
 	u.Log.Debug("Сохраняем массив URL")
-	fmt.Println(urls)
 	urlsChecked, err := u.Repo.CheckBatchURL(urls)
 	if err != nil {
 		return nil, err

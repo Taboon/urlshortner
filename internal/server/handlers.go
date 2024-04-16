@@ -2,7 +2,9 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/entity"
 	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"io"
@@ -64,6 +66,10 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	id, err := s.P.URLSaver(url)
 	if err != nil {
+		if errors.Is(err, entity.ErrURLExist) {
+			http.Error(w, fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id), http.StatusConflict)
+			return
+		}
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -115,6 +121,10 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 
 	id, err := s.P.URLSaver(url)
 	if err != nil {
+		if errors.Is(err, entity.ErrURLExist) {
+			http.Error(w, fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id), http.StatusConflict)
+			return
+		}
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
