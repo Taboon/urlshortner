@@ -88,6 +88,17 @@ func (u *URLProcessor) URLSaver(url string) (string, error) {
 	return id, nil
 }
 
+func hasDuplicates(urls *[]storage.ReqBatchJSON) {
+	urlMap := make(map[string]bool)
+
+	for i, item := range *urls {
+		if _, ok := urlMap[item.URL]; ok {
+			(*urls)[i].Exist = true // Дубликат найден
+		}
+		urlMap[item.URL] = true
+	}
+}
+
 func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]storage.ReqBatchJSON, error) {
 	u.Log.Debug("Сохраняем массив URL")
 	urlsChecked, err := u.Repo.CheckBatchURL(urls)
@@ -95,6 +106,8 @@ func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]s
 		return nil, err
 	}
 	urls = urlsChecked
+
+	hasDuplicates(urls)
 
 	var urlsToDB = make(map[string]storage.ReqBatchJSON)
 	var urlsWithErr = make(map[string]storage.ReqBatchJSON)

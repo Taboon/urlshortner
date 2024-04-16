@@ -3,12 +3,14 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -277,6 +279,100 @@ func Test_shortenJSON(t *testing.T) {
 			fmt.Println(string(respBody))
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
+		})
+	}
+}
+
+func Test_shortenBatchJSON(t *testing.T) {
+	regex := regexp.MustCompile(`^(https?|http)://[^\s/$.?#].[^\s]*$`)
+
+	tests := []struct {
+		name         string
+		request      string
+		response     map[string]bool
+		contentType  string
+		expectedCode int
+		expectedBody string
+	}{
+		{name: "test1", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://yandex.ru\"},{\"correlation_id\": \"b\",\"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
+		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": true}},
+		{name: "test3", request: "[{\"correlation_id\": \"a\", \"original_url\": \"ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://yandexru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": false}},
+		{name: "test4", request: "[{ \"https://yandex.ru\"}]", contentType: "application/json", expectedCode: http.StatusBadRequest},
+	}
+
+	//инициализируем конфиг
+	configBuilder := config.NewConfigBuilder()
+	configBuilder.SetLocalAddress("127.0.0.1", 8080)
+	configBuilder.SetBaseURL("127.0.0.1", 8080)
+	//configBuilder.SetFileBase("./tmp/short-url-db.json")
+	configBuilder.SetLogger("Debug")
+	conf := configBuilder.Build()
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
+	s := Server{
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			Logger: l,
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(s.shortenBatchJSON))
+	defer server.Close()
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return nil
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := server.URL + "/api/shorten/batch"
+
+			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
+			fmt.Println(tt.request)
+			req.Header.Set("Content-Type", tt.contentType)
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fmt.Println(string(respBody))
+			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
+
+			if tt.expectedCode != http.StatusBadRequest {
+				var testedResp []storage.RespBatchJSON
+
+				assert.Equal(t, true, json.Valid(respBody))
+
+				err = json.Unmarshal(respBody, &testedResp)
+				assert.NoError(t, err)
+
+				for _, v := range testedResp {
+					assert.Equal(t, tt.response[v.ID], regex.MatchString(v.URL))
+				}
+			}
 		})
 	}
 }
