@@ -2,12 +2,12 @@ package usecase
 
 import (
 	"errors"
-	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"math/rand"
 	"strings"
 
 	"github.com/Taboon/urlshortner/internal/entity"
+	"github.com/Taboon/urlshortner/internal/storage"
 )
 
 const (

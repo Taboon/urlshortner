@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/entity"
-	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Taboon/urlshortner/internal/entity"
+	"github.com/Taboon/urlshortner/internal/storage"
 )
 
 type RequestJSON struct {
@@ -186,7 +187,7 @@ func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var respJSON = storage.RespBatchJSON{}
-	var respBathJSON = []storage.RespBatchJSON{}
+	var respBathJSON []storage.RespBatchJSON
 
 	for id, v := range urls {
 		respJSON.ID = v.ID
