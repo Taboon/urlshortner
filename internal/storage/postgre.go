@@ -75,7 +75,10 @@ func (p *Postgre) AddBatchURL(urls map[string]ReqBatchJSON) error {
 					" VALUES($1, $2)", id, v.URL)
 			if err != nil {
 				// если ошибка, то откатываем изменения
-				tx.Rollback(ctx)
+				err := tx.Rollback(ctx)
+				if err != nil {
+					return err
+				}
 				return err
 			}
 		}
@@ -136,7 +139,10 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 		fmt.Println("Error beginning transaction:", err)
 		return nil, err
 	}
-	defer tx.Rollback(context.Background())
+	defer func() {
+		err := tx.Rollback(context.Background())
+		p.Log.Error("Ошибка RollBack", zap.Error(err))
+	}()
 
 	_, err = tx.Exec(context.Background(), "CREATE TEMP TABLE temp_urls (url TEXT)")
 	if err != nil {
