@@ -67,7 +67,9 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	id, err := s.P.URLSaver(url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
-			http.Error(w, fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id), http.StatusConflict)
+			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
+			url = strings.TrimSpace(url)
+			http.Error(w, url, http.StatusConflict)
 			return
 		}
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
@@ -122,7 +124,9 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	id, err := s.P.URLSaver(url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
-			http.Error(w, fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id), http.StatusConflict)
+			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
+			url = strings.TrimSpace(url)
+			http.Error(w, url, http.StatusConflict)
 			return
 		}
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
