@@ -65,7 +65,6 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
 
 	id, err := s.P.URLSaver(url)
 	if err != nil {
@@ -75,6 +74,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+	} else {
+		w.WriteHeader(http.StatusCreated)
 	}
 
 	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
@@ -120,7 +121,6 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 
 	id, err := s.P.URLSaver(url)
 	if err != nil {
@@ -130,6 +130,8 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 			return
 		}
+	} else {
+		w.WriteHeader(http.StatusCreated)
 	}
 
 	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
