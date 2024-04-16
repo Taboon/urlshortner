@@ -15,6 +15,31 @@ type FileStorage struct {
 	Log      *zap.Logger
 }
 
+var urlData = URLData{}
+
+func (f *FileStorage) AddBatchURL(urls map[string]ReqBatchJSON) error {
+	for id, v := range urls {
+		urlData.ID = id
+		urlData.URL = v.URL
+		err := f.AddURL(urlData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *FileStorage) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+	for i, v := range *urls {
+		_, ok, err := f.CheckURL(v.URL)
+		if err != nil {
+			return nil, err
+		}
+		(*urls)[i].Exist = ok
+	}
+	return urls, nil
+}
+
 var _ Repository = (*FileStorage)(nil)
 
 func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
@@ -34,7 +59,7 @@ func (f *FileStorage) Ping() error {
 }
 
 func (f *FileStorage) AddURL(data URLData) error {
-	file, err := os.OpenFile(f.fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0774)
+	file, err := os.OpenFile(f.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer func() {
 		err := file.Close()
 		if err != nil {
@@ -46,10 +71,6 @@ func (f *FileStorage) AddURL(data URLData) error {
 	}
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(data)
-	if err != nil {
-		return err
-	}
-	err = file.Close()
 	if err != nil {
 		return err
 	}
@@ -86,6 +107,7 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 	return URLData{}, false, nil
 }
 
+// Возвращает ok = false если URL нет в базе
 func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {

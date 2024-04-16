@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/logger"
 	"net/http"
 
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
+	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server/gzip"
 	"github.com/go-chi/chi/v5"
 )
@@ -33,5 +33,6 @@ func (s *Server) URLRouter() chi.Router {
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
 	r.Post("/", s.Log.RequestLogger(gzip.GzipMiddleware(s.getURL)))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
+	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenBatchJSON)))
 	return r
 }

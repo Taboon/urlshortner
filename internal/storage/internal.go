@@ -13,6 +13,29 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
+func (sm *SafeMap) AddBatchURL(urls map[string]ReqBatchJSON) error {
+	for id, v := range urls {
+		urlData.ID = id
+		urlData.URL = v.URL
+		err := sm.AddURL(urlData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sm *SafeMap) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+	for i, v := range *urls {
+		_, ok, err := sm.CheckURL(v.URL)
+		if err != nil {
+			return nil, err
+		}
+		(*urls)[i].Exist = ok
+	}
+	return urls, nil
+}
+
 var _ Repository = (*SafeMap)(nil)
 
 func NewMemoryStorage(logger *zap.Logger) *SafeMap {

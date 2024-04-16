@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/storage"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 type RequestJSON struct {
 	URL string `json:"url"`
 }
+
 type Response struct {
 	Result string
 }
@@ -120,6 +122,73 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
 
 	resp, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, "Не удалось кодировать JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(resp)
+
+	if err != nil {
+		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
+	var reqBatchJSON []storage.ReqBatchJSON
+
+	req, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
+		return
+	}
+
+	if !json.Valid(req) {
+		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(req, &reqBatchJSON)
+	if err != nil {
+		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if len(reqBatchJSON) == 0 {
+		http.Error(w, "Пустой JSON", http.StatusBadRequest)
+		return
+	}
+
+	s.Log.Debug("Пытаемся проверить массив ссылок")
+
+	reqBatchJSON = *s.P.BatchURLValidator(&reqBatchJSON)
+
+	urls, err := s.P.BatchURLSaver(&reqBatchJSON)
+	if err != nil {
+		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var respJSON = storage.RespBatchJSON{}
+	var respBathJSON = []storage.RespBatchJSON{}
+
+	for id, v := range urls {
+		respJSON.ID = v.ID
+		switch {
+		case !v.Valid:
+			respJSON.URL = "url invalid"
+		case v.Exist:
+			respJSON.URL = "url exist"
+		default:
+			respJSON.URL = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
+		}
+		respBathJSON = append(respBathJSON, respJSON)
+	}
+
+	resp, err := json.Marshal(respBathJSON)
 	if err != nil {
 		http.Error(w, "Не удалось кодировать JSON: "+err.Error(), http.StatusBadRequest)
 		return

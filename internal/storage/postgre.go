@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	//"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
-	"time"
 )
 
 type Postgre struct {
@@ -57,6 +59,31 @@ func (p *Postgre) AddURL(data URLData) error {
 	return nil
 }
 
+func (p *Postgre) AddBatchURL(urls map[string]ReqBatchJSON) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	for id, v := range urls {
+		// все изменения записываются в транзакцию
+		if v.Valid && !v.Exist {
+			_, err := tx.Exec(ctx,
+				"INSERT INTO urls (id, url)"+
+					" VALUES($1, $2)", id, v.URL)
+			if err != nil {
+				// если ошибка, то откатываем изменения
+				tx.Rollback(ctx)
+				return err
+			}
+		}
+	}
+	// завершаем транзакцию
+	return tx.Commit(ctx)
+}
+
 func (p *Postgre) CheckID(id string) (URLData, bool, error) {
 	var i string
 	var u string
@@ -97,6 +124,78 @@ func (p *Postgre) CheckURL(url string) (URLData, bool, error) {
 	}
 	p.Log.Debug("Возвращаем URLData", zap.String("url", u), zap.String("id", i))
 	return URLData{URL: u, ID: i}, true, nil
+}
+
+func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	// Создание временной таблицы для урлов
+	tx, err := p.db.Begin(ctx)
+	if err != nil {
+		fmt.Println("Error beginning transaction:", err)
+		return nil, err
+	}
+	defer tx.Rollback(context.Background())
+
+	_, err = tx.Exec(context.Background(), "CREATE TEMP TABLE temp_urls (url TEXT)")
+	if err != nil {
+		fmt.Println("Error creating temporary table:", err)
+		return nil, err
+	}
+
+	// Вставка урлов в временную таблицу
+	var values []interface{}
+	for _, v := range *urls {
+		if v.Valid && !v.Exist {
+			values = append(values, v.URL)
+		}
+	}
+
+	var queryInsert string
+	for i := 1; i <= len(values); i++ {
+		queryInsert += fmt.Sprintf("($%v)", i)
+		if i < len(values) {
+			queryInsert += ","
+		}
+	}
+
+	_, err = tx.Exec(context.Background(), "INSERT INTO temp_urls (url) VALUES "+queryInsert, values...)
+	if err != nil {
+		fmt.Println("Error inserting urls into temporary table:", err)
+		return nil, err
+	}
+
+	// Проверка существования урлов в базе данных
+	query := "SELECT url FROM temp_urls tu WHERE EXISTS (SELECT 1 FROM urls u WHERE u.url = tu.url)"
+	rows, err := p.db.Query(context.Background(), query)
+	if err != nil {
+		fmt.Println("Error querying database:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	existingUrls := make(map[string]bool)
+	for rows.Next() {
+		var url string
+		err := rows.Scan(&url)
+		if err != nil {
+			fmt.Println("Error scanning row:", err)
+			return nil, err
+		}
+		existingUrls[url] = true
+	}
+
+	// Вывод результатов
+	for i, url := range *urls {
+		if existingUrls[url.URL] {
+			p.Log.Info("URL уже есть в базе.", zap.String("url", url.URL))
+			(*urls)[i].Exist = true
+		} else {
+			(*urls)[i].Exist = false
+		}
+	}
+	return urls, nil
 }
 
 func (p *Postgre) RemoveURL(data URLData) error {
