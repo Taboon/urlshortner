@@ -68,7 +68,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
 			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
-			url = strings.TrimSpace(url)
+			url = strings.TrimSuffix(url, "\n")
 			http.Error(w, url, http.StatusConflict)
 			return
 		}
@@ -125,7 +125,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
 			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
-			url = strings.TrimSpace(url)
+			url = strings.TrimSuffix(url, "\n")
 			http.Error(w, url, http.StatusConflict)
 			return
 		}
