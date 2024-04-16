@@ -64,20 +64,18 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
+
 	id, err := s.P.URLSaver(url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
-			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
-			url = strings.TrimSuffix(url, "\n")
-			http.Error(w, url, http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
-		return
 	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
 
 	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
 
@@ -121,16 +119,17 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
 	id, err := s.P.URLSaver(url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
-			url := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
-			url = strings.TrimSuffix(url, "\n")
-			http.Error(w, url, http.StatusConflict)
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
-		return
 	}
 
 	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
@@ -141,8 +140,6 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(resp)
 
 	if err != nil {
