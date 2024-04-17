@@ -48,8 +48,6 @@ func (p *Postgre) Ping() error {
 
 func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
 	_, err := p.db.Exec(ctx, "INSERT INTO urls (id, url) VALUES ($1, $2)", data.ID, data.URL)
 	if err != nil {
 		return err
@@ -58,9 +56,6 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 }
 
 func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -88,9 +83,9 @@ func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON)
 func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	var i string
 	var u string
+
 	p.Log.Debug("Проверяем ID в базе данных", zap.String("id", id))
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+
 	err := p.db.QueryRow(ctx, "SELECT id, url FROM urls WHERE id = $1", id).Scan(&i, &u)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -109,9 +104,9 @@ func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error)
 func (p *Postgre) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	var i string
 	var u string
+
 	p.Log.Debug("Проверяем URL в базе данных", zap.String("url", url))
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+
 	err := p.db.QueryRow(ctx, "SELECT id, url FROM urls WHERE url = $1", url).Scan(&i, &u)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
