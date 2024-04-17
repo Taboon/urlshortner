@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"errors"
 	"go.uber.org/zap"
 	"math/rand"
@@ -52,10 +53,10 @@ func (u *URLProcessor) BatchURLValidator(urls *[]storage.ReqBatchJSON) *[]storag
 	return urls
 }
 
-func (u *URLProcessor) URLSaver(url string) (string, error) {
+func (u *URLProcessor) URLSaver(ctx context.Context, url string) (string, error) {
 	u.Log.Debug("Сохраняем URL")
 
-	data, ok, err := u.Repo.CheckURL(url)
+	data, ok, err := u.Repo.CheckURL(ctx, url)
 
 	if err != nil {
 		return "", err
@@ -69,7 +70,7 @@ func (u *URLProcessor) URLSaver(url string) (string, error) {
 
 	urlObj := storage.URLData{URL: url, ID: id}
 
-	err = u.Repo.AddURL(urlObj)
+	err = u.Repo.AddURL(ctx, urlObj)
 
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
@@ -79,7 +80,7 @@ func (u *URLProcessor) URLSaver(url string) (string, error) {
 	}
 
 	if u.Backup != nil {
-		err := u.Backup.AddURL(urlObj)
+		err := u.Backup.AddURL(ctx, urlObj)
 		if err != nil {
 			u.Log.Error("Ошибка сохранения бекапа")
 		}
@@ -99,9 +100,9 @@ func hasDuplicates(urls *[]storage.ReqBatchJSON) {
 	}
 }
 
-func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]storage.ReqBatchJSON, error) {
+func (u *URLProcessor) BatchURLSaver(ctx context.Context, urls *[]storage.ReqBatchJSON) (map[string]storage.ReqBatchJSON, error) {
 	u.Log.Debug("Сохраняем массив URL")
-	urlsChecked, err := u.Repo.CheckBatchURL(urls)
+	urlsChecked, err := u.Repo.CheckBatchURL(ctx, urls)
 	if err != nil {
 		return nil, err
 	}
@@ -123,13 +124,13 @@ func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]s
 
 	u.Log.Info("Пытаемся сохранить массив URL")
 	if len(urlsToDB) > 0 {
-		err = u.Repo.AddBatchURL(urlsToDB)
+		err = u.Repo.AddBatchURL(ctx, urlsToDB)
 		if err != nil {
 			return nil, err
 		}
 
 		if u.Backup != nil {
-			err := u.Backup.AddBatchURL(urlsToDB)
+			err := u.Backup.AddBatchURL(ctx, urlsToDB)
 			if err != nil {
 				u.Log.Error("Ошибка сохранения бекапа")
 			}
@@ -146,6 +147,9 @@ func (u *URLProcessor) BatchURLSaver(urls *[]storage.ReqBatchJSON) (map[string]s
 func (u *URLProcessor) generateID() string {
 	u.Log.Debug("Генерируем ID")
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, 8)
 
@@ -157,7 +161,7 @@ func (u *URLProcessor) generateID() string {
 				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
 			}
 		}
-		_, ok, err := u.Repo.CheckID(string(b))
+		_, ok, err := u.Repo.CheckID(ctx, string(b))
 		if err != nil {
 			u.Log.Error("Ошибка при проверке ID", zap.Error(err))
 		}

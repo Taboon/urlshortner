@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"errors"
 	"go.uber.org/zap"
 	"sync"
@@ -13,11 +14,11 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
-func (sm *SafeMap) AddBatchURL(urls map[string]ReqBatchJSON) error {
+func (sm *SafeMap) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
 	for id, v := range urls {
 		urlData.ID = id
 		urlData.URL = v.URL
-		err := sm.AddURL(urlData)
+		err := sm.AddURL(ctx, urlData)
 		if err != nil {
 			return err
 		}
@@ -25,9 +26,9 @@ func (sm *SafeMap) AddBatchURL(urls map[string]ReqBatchJSON) error {
 	return nil
 }
 
-func (sm *SafeMap) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 	for i, v := range *urls {
-		_, ok, err := sm.CheckURL(v.URL)
+		_, ok, err := sm.CheckURL(ctx, v.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +52,7 @@ func (sm *SafeMap) Ping() error {
 	return nil
 }
 
-func (sm *SafeMap) AddURL(data URLData) error {
+func (sm *SafeMap) AddURL(ctx context.Context, data URLData) error {
 	sm.Log.Debug("Сохраняем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -77,7 +78,7 @@ func (sm *SafeMap) AddURL(data URLData) error {
 	return nil
 }
 
-func (sm *SafeMap) CheckID(id string) (URLData, bool, error) {
+func (sm *SafeMap) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	sm.Log.Debug("Проверяем ID")
 	urlData := URLData{}
 	val, ok := sm.mapStor[id]
@@ -89,7 +90,7 @@ func (sm *SafeMap) CheckID(id string) (URLData, bool, error) {
 	return urlData, false, nil
 }
 
-func (sm *SafeMap) CheckURL(url string) (URLData, bool, error) {
+func (sm *SafeMap) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	sm.Log.Debug("Проверяем URL")
 	urlData := URLData{}
 	val, ok := sm.reverseMapStor[url]
@@ -101,7 +102,7 @@ func (sm *SafeMap) CheckURL(url string) (URLData, bool, error) {
 	return urlData, false, nil
 }
 
-func (sm *SafeMap) RemoveURL(data URLData) error {
+func (sm *SafeMap) RemoveURL(ctx context.Context, data URLData) error {
 	sm.Log.Debug("Удаляем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()

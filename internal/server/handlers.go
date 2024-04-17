@@ -31,7 +31,7 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
 
-	v, err := s.P.Get(path)
+	v, err := s.P.Get(r.Context(), path)
 	if err != nil {
 		http.Error(w, "Не удалось получить URL", http.StatusBadRequest)
 		return
@@ -67,7 +67,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 
-	id, err := s.P.URLSaver(url)
+	id, err := s.P.URLSaver(r.Context(), url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
 			w.WriteHeader(http.StatusConflict)
@@ -123,7 +123,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	id, err := s.P.URLSaver(url)
+	id, err := s.P.URLSaver(r.Context(), url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
 			w.WriteHeader(http.StatusConflict)
@@ -180,7 +180,7 @@ func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 
 	reqBatchJSON = *s.P.BatchURLValidator(&reqBatchJSON)
 
-	urls, err := s.P.BatchURLSaver(&reqBatchJSON)
+	urls, err := s.P.BatchURLSaver(r.Context(), &reqBatchJSON)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
 		return

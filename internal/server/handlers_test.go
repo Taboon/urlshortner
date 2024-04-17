@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
@@ -57,7 +58,7 @@ func TestSendUrl(t *testing.T) {
 		},
 	}
 
-	err = s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(context.Background(), urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return
@@ -106,7 +107,7 @@ func TestSendUrl(t *testing.T) {
 
 			defer resp.Body.Close()
 
-			id, _, err := s.P.Repo.CheckID("AAAAaaaa")
+			id, _, err := s.P.Repo.CheckID(context.Background(), "AAAAaaaa")
 			if err != nil {
 				return
 			}
@@ -166,7 +167,7 @@ func Test_getUrl(t *testing.T) {
 		},
 	}
 
-	err = s.P.Repo.AddURL(urlMock)
+	err = s.P.Repo.AddURL(context.Background(), urlMock)
 	if err != nil {
 		fmt.Println("Error add URL mock")
 		return

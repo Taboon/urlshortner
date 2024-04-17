@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"go.uber.org/zap"
@@ -17,11 +18,11 @@ type FileStorage struct {
 
 var urlData = URLData{}
 
-func (f *FileStorage) AddBatchURL(urls map[string]ReqBatchJSON) error {
+func (f *FileStorage) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
 	for id, v := range urls {
 		urlData.ID = id
 		urlData.URL = v.URL
-		err := f.AddURL(urlData)
+		err := f.AddURL(ctx, urlData)
 		if err != nil {
 			return err
 		}
@@ -29,9 +30,9 @@ func (f *FileStorage) AddBatchURL(urls map[string]ReqBatchJSON) error {
 	return nil
 }
 
-func (f *FileStorage) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+func (f *FileStorage) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 	for i, v := range *urls {
-		_, ok, err := f.CheckURL(v.URL)
+		_, ok, err := f.CheckURL(ctx, v.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +59,7 @@ func (f *FileStorage) Ping() error {
 	return nil
 }
 
-func (f *FileStorage) AddURL(data URLData) error {
+func (f *FileStorage) AddURL(ctx context.Context, data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer func() {
 		err := file.Close()
@@ -77,7 +78,7 @@ func (f *FileStorage) AddURL(data URLData) error {
 	return nil
 }
 
-func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
+func (f *FileStorage) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
@@ -108,7 +109,7 @@ func (f *FileStorage) CheckID(id string) (URLData, bool, error) {
 }
 
 // Возвращает ok = false если URL нет в базе
-func (f *FileStorage) CheckURL(url string) (URLData, bool, error) {
+func (f *FileStorage) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
@@ -168,7 +169,7 @@ func (f *FileStorage) Get(repository *Repository) error {
 	return nil
 }
 
-func (f *FileStorage) RemoveURL(data URLData) error {
+func (f *FileStorage) RemoveURL(ctx context.Context, data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0774)
 	defer func() {
 		err := file.Close()

@@ -46,7 +46,7 @@ func (p *Postgre) Ping() error {
 	return nil
 }
 
-func (p *Postgre) AddURL(data URLData) error {
+func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -57,7 +57,7 @@ func (p *Postgre) AddURL(data URLData) error {
 	return nil
 }
 
-func (p *Postgre) AddBatchURL(urls map[string]ReqBatchJSON) error {
+func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -85,7 +85,7 @@ func (p *Postgre) AddBatchURL(urls map[string]ReqBatchJSON) error {
 	return tx.Commit(ctx)
 }
 
-func (p *Postgre) CheckID(id string) (URLData, bool, error) {
+func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	var i string
 	var u string
 	p.Log.Debug("Проверяем ID в базе данных", zap.String("id", id))
@@ -106,7 +106,7 @@ func (p *Postgre) CheckID(id string) (URLData, bool, error) {
 	return URLData{URL: u, ID: i}, true, nil
 }
 
-func (p *Postgre) CheckURL(url string) (URLData, bool, error) {
+func (p *Postgre) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	var i string
 	var u string
 	p.Log.Debug("Проверяем URL в базе данных", zap.String("url", url))
@@ -127,28 +127,8 @@ func (p *Postgre) CheckURL(url string) (URLData, bool, error) {
 	return URLData{URL: u, ID: i}, true, nil
 }
 
-func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+func (p *Postgre) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 
-	// Создание временной таблицы для урлов
-	tx, err := p.db.Begin(ctx)
-	if err != nil {
-		p.Log.Error("Error beginning transaction:", zap.Error(err))
-		return nil, err
-	}
-	defer func() {
-		err := tx.Rollback(context.Background())
-		p.Log.Error("Ошибка RollBack", zap.Error(err))
-	}()
-
-	_, err = tx.Exec(context.Background(), "CREATE TEMP TABLE temp_urls (url TEXT)")
-	if err != nil {
-		p.Log.Error("Error creating temporary table:", zap.Error(err))
-		return nil, err
-	}
-
-	// Вставка урлов в временную таблицу
 	var values []interface{}
 	for _, v := range *urls {
 		if v.Valid && !v.Exist {
@@ -164,15 +144,9 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 		}
 	}
 
-	_, err = tx.Exec(context.Background(), "INSERT INTO temp_urls (url) VALUES "+queryInsert, values...)
-	if err != nil {
-		p.Log.Error("Error inserting urls into temporary table:", zap.Error(err))
-		return nil, err
-	}
-
 	// Проверка существования урлов в базе данных
-	query := "SELECT url FROM temp_urls tu WHERE EXISTS (SELECT 1 FROM urls u WHERE u.url = tu.url)"
-	rows, err := p.db.Query(context.Background(), query)
+	query := "SELECT url FROM urls WHERE url IN " + queryInsert
+	rows, err := p.db.Query(ctx, query, values...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
 		return nil, err
@@ -202,7 +176,7 @@ func (p *Postgre) CheckBatchURL(urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
 	return urls, nil
 }
 
-func (p *Postgre) RemoveURL(data URLData) error {
+func (p *Postgre) RemoveURL(ctx context.Context, data URLData) error {
 	//TODO implement me
 	panic("implement me4")
 }
