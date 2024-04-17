@@ -133,14 +133,14 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]R
 
 	var queryInsert string
 	for i := 1; i <= len(values); i++ {
-		queryInsert += fmt.Sprintf("($%v)", i)
+		queryInsert += fmt.Sprintf("$%v", i)
 		if i < len(values) {
 			queryInsert += ","
 		}
 	}
 
 	// Проверка существования урлов в базе данных
-	query := "SELECT url FROM urls WHERE url IN " + queryInsert
+	query := "SELECT url FROM urls WHERE url IN (" + queryInsert + ")"
 	rows, err := p.db.Query(ctx, query, values...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
