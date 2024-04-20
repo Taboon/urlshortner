@@ -11,7 +11,7 @@ type Config struct {
 	LocalAddress Address
 	BaseURL      Address
 	FileBase     FileBase
-	DataDase     string
+	DataBase     string
 	LogLevel     string
 }
 
@@ -97,14 +97,14 @@ func parseEnv(conf *Config) error {
 		conf.FileBase.File = envBasePath
 	}
 	if envDBAddres := os.Getenv("DATABASE_DSN"); envDBAddres != "" {
-		conf.DataDase = envDBAddres
+		conf.DataBase = envDBAddres
 	}
 	return nil
 }
 
 func parseFlags(conf *Config) error {
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
-	flag.StringVar(&conf.DataDase, "d", "", "data base url")
+	flag.StringVar(&conf.DataBase, "d", "", "data base url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")

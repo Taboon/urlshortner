@@ -2,8 +2,10 @@ package storage
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/pressly/goose"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -25,9 +27,17 @@ func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
 	}
 }
 
-func CheckDB(db *pgx.Conn) error {
-	_, err := db.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS urls (id TEXT PRIMARY KEY, url TEXT)")
+func Migrations(dsn string) error {
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return err
+	}
+	if err := goose.Up(db, "internal/db/migrations"); err != nil {
 		return err
 	}
 	return nil

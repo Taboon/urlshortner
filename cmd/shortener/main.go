@@ -37,9 +37,10 @@ func main() {
 	var stor storage.Repository
 
 	switch {
-	case conf.DataDase != "":
+	case conf.DataBase != "":
 		//urlExample := "postgres://postgres:1101@192.168.31.40:5432/urlshortnerdb"
-		db, err := pgx.Connect(context.Background(), conf.DataDase)
+		db, err := pgx.Connect(context.Background(), conf.DataBase)
+
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 			os.Exit(1)
@@ -53,7 +54,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		err = storage.CheckDB(db)
+		err = storage.Migrations(conf.DataBase)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Can't created table: %v\n", err)
 			os.Exit(1)

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -38,9 +37,7 @@ func TestSendUrl(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err, "Error initialize logger")
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -59,10 +56,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	err = s.P.Repo.AddURL(context.Background(), urlMock)
-	if err != nil {
-		fmt.Println("Error add URL mock")
-		return
-	}
+	require.NoError(t, err, "Error add URL mock")
 
 	tests := []struct {
 		name         string
@@ -92,15 +86,11 @@ func TestSendUrl(t *testing.T) {
 			fmt.Println(url)
 			// Создаем GET запрос
 			req, err := http.NewRequest(tt.method, url, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err, "Error new request")
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err, "Error do request")
 			body, _ := io.ReadAll(resp.Body)
 			fmt.Println(string(body))
 			fmt.Println(resp)
@@ -108,9 +98,7 @@ func TestSendUrl(t *testing.T) {
 			defer resp.Body.Close()
 
 			id, _, err := s.P.Repo.CheckID(context.Background(), "AAAAaaaa")
-			if err != nil {
-				return
-			}
+			require.NoError(t, err, "Error check id")
 			fmt.Println(id)
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -147,9 +135,7 @@ func Test_getUrl(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -168,10 +154,7 @@ func Test_getUrl(t *testing.T) {
 	}
 
 	err = s.P.Repo.AddURL(context.Background(), urlMock)
-	if err != nil {
-		fmt.Println("Error add URL mock")
-		return
-	}
+	require.NoError(t, err)
 
 	server := httptest.NewServer(http.HandlerFunc(s.getURL))
 	defer server.Close()
@@ -187,15 +170,11 @@ func Test_getUrl(t *testing.T) {
 
 			// Создаем GET запрос
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.body))
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -228,9 +207,7 @@ func Test_shortenJSON(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -263,20 +240,14 @@ func Test_shortenJSON(t *testing.T) {
 			fmt.Println(tt.request)
 			req.Header.Set("Content-Type", tt.contentType)
 
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			respBody, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			fmt.Println(string(respBody))
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -310,9 +281,7 @@ func Test_shortenBatchJSON(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -345,20 +314,14 @@ func Test_shortenBatchJSON(t *testing.T) {
 			fmt.Println(tt.request)
 			req.Header.Set("Content-Type", tt.contentType)
 
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			respBody, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			fmt.Println(string(respBody))
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 
@@ -390,9 +353,7 @@ func TestGzipCompression(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -457,7 +418,7 @@ func TestGzipCompression(t *testing.T) {
 
 		_, err = io.ReadAll(zr)
 		require.NoError(t, err)
-
+		//TODO URL validate
 		//require.JSONEq(t, successBody, string(b))
 	})
 }
