@@ -90,7 +90,7 @@ func (u *URLProcessor) URLSaver(ctx context.Context, url string) (string, error)
 }
 
 func hasDuplicates(urls *[]storage.ReqBatchJSON) {
-	urlMap := make(map[string]bool)
+	urlMap := make(map[string]bool, 0, len(*urls))
 
 	for i, item := range *urls {
 		if _, ok := urlMap[item.URL]; ok {

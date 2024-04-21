@@ -53,3 +53,24 @@ jobs:
 
           # Optional: The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
           # install-mode: "goinstall"
+
+          linters:
+            enable-all: true
+            # Disable specific linter
+            # https://golangci-lint.run/usage/linters/#disabled-by-default
+            disable:
+              - ,,,,
+
+          linters-settings:
+            funlen:
+              # Checks the number of lines in a function.
+              # If lower than 0, disable the check.
+              # Default: 60
+              lines: -1
+              # Checks the number of statements in a function.
+              # If lower than 0, disable the check.
+              # Default: 40
+              statements: -1
+              # Ignore comments when counting lines.
+              # Default false
+              ignore-comments: true
