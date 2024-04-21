@@ -5,4 +5,3 @@ CREATE TABLE urls (
                                     url TEXT
 );
 -- +goose StatementEnd
-
