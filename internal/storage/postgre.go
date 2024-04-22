@@ -90,33 +90,19 @@ func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON)
 }
 
 func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
-	var i string
-	var u string
-
-	p.Log.Debug("Проверяем ID в базе данных", zap.String("id", id))
-
-	err := p.db.QueryRow(ctx, "SELECT id, url FROM urls WHERE id = $1", id).Scan(&i, &u)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			p.Log.Debug("Не нашли запись в базе данных")
-			return URLData{}, false, nil
-		}
-		if !errors.Is(err, pgx.ErrNoRows) {
-			p.Log.Error("Другая ошибка запроса", zap.Error(err))
-			return URLData{}, false, err
-		}
-	}
-	p.Log.Debug("Возвращаем URLData", zap.String("url", u), zap.String("id", i))
-	return URLData{URL: u, ID: i}, true, nil
+	return p.check(ctx, "id", id)
 }
 
 func (p *Postgre) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
+	return p.check(ctx, "url", url)
+}
+
+func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool, error) {
 	var i string
 	var u string
 
-	p.Log.Debug("Проверяем URL в базе данных", zap.String("url", url))
-
-	err := p.db.QueryRow(ctx, "SELECT id, url FROM urls WHERE url = $1", url).Scan(&i, &u)
+	insertType := fmt.Sprintf("SELECT id, url FROM urls WHERE %v = $1", t)
+	err := p.db.QueryRow(ctx, insertType, v).Scan(&i, &u)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			p.Log.Debug("Не нашли запись в базе данных")

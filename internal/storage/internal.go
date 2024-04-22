@@ -91,7 +91,6 @@ func (sm *SafeMap) CheckID(ctx context.Context, id string) (URLData, bool, error
 }
 
 func (sm *SafeMap) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
-	if ctx.Done()
 	sm.Log.Debug("Проверяем URL")
 	urlData := URLData{}
 	val, ok := sm.reverseMapStor[url]
