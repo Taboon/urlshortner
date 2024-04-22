@@ -28,24 +28,24 @@ func TestSendUrl(t *testing.T) {
 		ID:  "AAAAaaaa",
 	}
 
-	//инициализируем конфиг
+	// инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
 	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-	//инициализируем логгер
+	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
 	require.NoError(t, err, "Error initialize logger")
-	//инициализируем хранилище
+	// инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
+	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
 		Repo: stor,
 		Log:  l,
 	}
-	//инициализируем сервер
+	// инициализируем сервер
 	s := Server{
 		LocalAddress: conf.LocalAddress.String(),
 		BaseURL:      conf.BaseURL.String(),
@@ -228,7 +228,7 @@ func Test_shortenJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
 	defer server.Close()
 
-	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	client := &http.Client{CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 		return nil
 	}}
 

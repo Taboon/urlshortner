@@ -1,0 +1,28 @@
+linters:
+  #enable-all: true
+  enable:
+    - funlen
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - bodyclose
+    - dupl
+    - errorlint
+    - exportloopref
+    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - goprintffuncname
+    - gosec
+    - prealloc
+    - revive
+    - stylecheck
+    - whitespace
+
+linters-settings:
+  funlen:
+    lines: 32

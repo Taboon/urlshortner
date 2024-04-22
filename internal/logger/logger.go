@@ -71,7 +71,7 @@ func (l *Logger) RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 		method := r.Method
 		h.ServeHTTP(&lw, r)
 		duration := time.Since(start)
-		l.Info("request",
+		l.Info("request", //nolint:typecheck
 			zap.String("uri", uri),
 			zap.String("method", method),
 			zap.String("duration", strconv.FormatInt(int64(duration), 10)),

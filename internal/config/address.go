@@ -23,7 +23,6 @@ func (l *Address) String() string {
 // Set связывает переменную типа со значением флага
 // и устанавливает правила парсинга для пользовательского типа.
 func (l *Address) Set(flagValue string) error {
-
 	if flagValue == "" {
 		return entity.ErrEmptyFlag
 	}

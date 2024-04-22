@@ -3,21 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
+	"log"
+	"os"
+
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
 	"github.com/Taboon/urlshortner/internal/storage"
-	"github.com/jackc/pgx/v5"
-	"go.uber.org/zap"
-	"log"
-	"os"
+	pgx "github.com/jackc/pgx/v5"
 )
 
 const baseFilePath = "/tmp/short-url-db.json"
 
 func main() {
-	//инициализируем конфиг
+	// инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
@@ -27,13 +28,13 @@ func main() {
 	configBuilder.ParseFlag()
 	conf := configBuilder.Build()
 
-	//инициализируем логгер
+	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//инициализируем хранилище
+	// инициализируем хранилище
 	var stor storage.Repository
 
 	switch {
@@ -98,5 +99,4 @@ func main() {
 	if err := srv.Run(conf.LocalAddress); err != nil {
 		log.Fatal(err)
 	}
-
 }

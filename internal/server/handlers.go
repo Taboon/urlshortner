@@ -26,7 +26,6 @@ const (
 )
 
 func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
-
 	path := r.URL.Path
 	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
@@ -42,7 +41,7 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 	err := s.P.Ping()
 	if err != nil {
 		http.Error(w, "Ошибка при подключении к базе данных", http.StatusInternalServerError)
@@ -187,7 +186,7 @@ func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var respJSON = storage.RespBatchJSON{}
-	var respBathJSON []storage.RespBatchJSON
+	respBathJSON := make([]storage.RespBatchJSON, len(urls))
 
 	for id, v := range urls {
 		respJSON.ID = v.ID

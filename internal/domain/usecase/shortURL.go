@@ -155,10 +155,10 @@ func (u *URLProcessor) generateID() string {
 
 	for {
 		for i := range b {
-			if rand.Intn(2) == 0 {
-				b[i] = letterBytes[rand.Intn(26)] // строчные символы
+			if rand.Intn(2) == 0 { //nolint:gosec
+				b[i] = letterBytes[rand.Intn(26)] //nolint:gosec    // строчные символы
 			} else {
-				b[i] = letterBytes[rand.Intn(26)+26] // заглавные символы
+				b[i] = letterBytes[rand.Intn(26)+26] //nolint:gosec    // заглавные символы
 			}
 		}
 		_, ok, err := u.Repo.CheckID(ctx, string(b))

@@ -15,13 +15,13 @@ type Config struct {
 	LogLevel     string
 }
 
-type ConfigBuilder interface {
-	SetLocalAddress(ip string, port int) ConfigBuilder
-	SetBaseURL(ip string, port int) ConfigBuilder
-	SetFileBase(path string) ConfigBuilder
-	SetLogger(level string) ConfigBuilder
-	ParseFlag() ConfigBuilder
-	ParseEnv() ConfigBuilder
+type Builder interface {
+	SetLocalAddress(ip string, port int) Builder
+	SetBaseURL(ip string, port int) Builder
+	SetFileBase(path string) Builder
+	SetLogger(level string) Builder
+	ParseFlag() Builder
+	ParseEnv() Builder
 	Build() *Config
 }
 
@@ -29,29 +29,29 @@ type configBuilder struct {
 	config *Config
 }
 
-func (c *configBuilder) SetLocalAddress(ip string, port int) ConfigBuilder {
+func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
 	c.config.LocalAddress.Port = port
 	return c
 }
 
-func (c *configBuilder) SetBaseURL(ip string, port int) ConfigBuilder {
+func (c *configBuilder) SetBaseURL(ip string, port int) Builder {
 	c.config.BaseURL.IP = ip
 	c.config.BaseURL.Port = port
 	return c
 }
 
-func (c *configBuilder) SetFileBase(path string) ConfigBuilder {
+func (c *configBuilder) SetFileBase(path string) Builder {
 	c.config.FileBase.File = path
 	return c
 }
 
-func (c *configBuilder) SetLogger(level string) ConfigBuilder {
+func (c *configBuilder) SetLogger(level string) Builder {
 	c.config.LogLevel = level
 	return c
 }
 
-func (c *configBuilder) ParseFlag() ConfigBuilder {
+func (c *configBuilder) ParseFlag() Builder {
 	err := parseEnv(c.config)
 	if err != nil {
 		fmt.Println(err)
@@ -59,7 +59,7 @@ func (c *configBuilder) ParseFlag() ConfigBuilder {
 	return c
 }
 
-func (c *configBuilder) ParseEnv() ConfigBuilder {
+func (c *configBuilder) ParseEnv() Builder {
 	err := parseFlags(c.config)
 	if err != nil {
 		fmt.Println(err)
@@ -70,7 +70,7 @@ func (c *configBuilder) ParseEnv() ConfigBuilder {
 func (c *configBuilder) Build() *Config {
 	return c.config
 }
-func NewConfigBuilder() ConfigBuilder {
+func NewConfigBuilder() Builder {
 	return &configBuilder{
 		config: &Config{},
 	}

@@ -27,10 +27,3 @@ jobs:
 
           version: v1.54
 
-          linters:
-            enable:
-              - funlen
-
-          linters-settings:
-            funlen:
-              lines: 32

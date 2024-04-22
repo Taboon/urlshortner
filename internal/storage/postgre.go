@@ -8,7 +8,7 @@ import (
 	"github.com/pressly/goose"
 	"time"
 
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 )
@@ -74,8 +74,7 @@ func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON)
 		// все изменения записываются в транзакцию
 		if v.Valid && !v.Exist {
 			_, err := tx.Exec(ctx,
-				"INSERT INTO urls (id, url)"+
-					" VALUES($1, $2)", id, v.URL)
+				"INSERT INTO urls (id, url) VALUES($1, $2)", id, v.URL)
 			if err != nil {
 				// если ошибка, то откатываем изменения
 				err := tx.Rollback(ctx)
@@ -182,6 +181,6 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]R
 }
 
 func (p *Postgre) RemoveURL(ctx context.Context, data URLData) error {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me4")
 }
