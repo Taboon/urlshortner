@@ -62,21 +62,17 @@ func (f *FileStorage) Ping() error {
 
 func (f *FileStorage) AddURL(_ context.Context, data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		err := file.Close()
 		if err != nil {
 			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
 		}
 	}()
-	if err != nil {
-		return err
-	}
 	encoder := json.NewEncoder(file)
-	err = encoder.Encode(data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return encoder.Encode(data)
 }
 
 func (f *FileStorage) CheckID(_ context.Context, id string) (URLData, bool, error) {
