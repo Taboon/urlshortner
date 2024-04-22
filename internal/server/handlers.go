@@ -51,7 +51,6 @@ func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
-
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
@@ -66,17 +65,16 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 
-	id, err := s.P.URLSaver(r.Context(), url)
+	id, err := s.P.SaveURL(r.Context(), url)
 	if err != nil {
 		if errors.Is(err, entity.ErrURLExist) {
 			w.WriteHeader(http.StatusConflict)
-		} else {
-			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 			return
 		}
-	} else {
-		w.WriteHeader(http.StatusCreated)
+		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
+		return
 	}
+	w.WriteHeader(http.StatusCreated)
 
 	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
 
@@ -86,34 +84,15 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var requestBody = RequestJSON{}
-var response = Response{}
-
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
-	req, err := io.ReadAll(r.Body)
+	// получаем JSON
+	requestBody, err := s.getURLJSON(w, r)
 	if err != nil {
-		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
+		http.Error(w, "Ошибка получения JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if !json.Valid(req) {
-		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return
-	}
-
-	err = json.Unmarshal(req, &requestBody)
-	if err != nil {
-		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if requestBody.URL == "" {
-		http.Error(w, "Пустой URL", http.StatusBadRequest)
-		return
-	}
-
-	s.Log.Debug("Пытаемся проверить", zap.String("url", requestBody.URL))
-
+	// валидируем URL
 	url, err := s.P.URLValidator(requestBody.URL)
 	if err != nil {
 		http.Error(w, "Неверный URL: "+err.Error(), http.StatusBadRequest)
@@ -122,21 +101,96 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	id, err := s.P.URLSaver(r.Context(), url)
-	if err != nil {
-		if errors.Is(err, entity.ErrURLExist) {
-			w.WriteHeader(http.StatusConflict)
-		} else {
-			http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
-			return
-		}
-	} else {
+	// сохраняем URL
+	id, err := s.P.SaveURL(r.Context(), url)
+	switch {
+	case errors.Is(err, entity.ErrURLExist):
+		w.WriteHeader(http.StatusConflict)
+	case !errors.Is(err, entity.ErrURLExist):
+		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
+		return
+	default:
 		w.WriteHeader(http.StatusCreated)
 	}
 
-	response = Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
+	response := Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
 
-	resp, err := json.Marshal(response)
+	s.writeResponse(w, response)
+}
+
+func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON, error) {
+	var requestBody = RequestJSON{}
+
+	req, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
+		return RequestJSON{}, nil
+	}
+
+	if !json.Valid(req) {
+		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
+		return RequestJSON{}, nil
+	}
+
+	err = json.Unmarshal(req, &requestBody)
+	if err != nil {
+		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
+		return RequestJSON{}, nil
+	}
+
+	if requestBody.URL == "" {
+		http.Error(w, "Пустой URL", http.StatusBadRequest)
+		return RequestJSON{}, nil
+	}
+	return requestBody, err
+}
+
+func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
+	// получаем все url в json
+	URLs, err := getReqBatchJSON(w, r)
+	if err != nil {
+		s.Log.Error("Ошибка получения JSON", zap.Error(err))
+		return
+	}
+	if len(*URLs) == 0 {
+		http.Error(w, "Пустой JSON", http.StatusBadRequest)
+		return
+	}
+
+	// пытаемся сохранить
+	URLs, err = s.P.BatchURLSaver(r.Context(), URLs)
+	if err != nil {
+		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// пишем результат в JSON
+	respBathJSON := s.getRespBatchJSON(URLs)
+
+	// отправляем ответ
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	s.writeResponse(w, respBathJSON)
+}
+
+func (s *Server) getRespBatchJSON(urls *storage.ReqBatchURLs) storage.RespBatchURLs {
+	var respURL = storage.RespBatchURL{}
+	var respBathJSON = make(storage.RespBatchURLs, 0, len(*urls))
+
+	for _, v := range *urls {
+		respURL.ID = v.ExternalID
+		if v.Err != nil {
+			respURL.URL = v.Err.Error()
+		} else {
+			respURL.URL = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, v.ID)
+		}
+		respBathJSON = append(respBathJSON, respURL)
+	}
+	return respBathJSON
+}
+
+func (s *Server) writeResponse(w http.ResponseWriter, r interface{}) {
+	resp, err := json.Marshal(r)
 	if err != nil {
 		http.Error(w, "Не удалось кодировать JSON: "+err.Error(), http.StatusBadRequest)
 		return
@@ -150,69 +204,24 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
-	var reqBatchJSON []storage.ReqBatchJSON
+func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchURLs, error) {
+	var reqBatchJSON storage.ReqBatchURLs
 
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	if !json.Valid(req) {
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	err = json.Unmarshal(req, &reqBatchJSON)
 	if err != nil {
 		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return
+		return nil, err
 	}
-
-	if len(reqBatchJSON) == 0 {
-		http.Error(w, "Пустой JSON", http.StatusBadRequest)
-		return
-	}
-
-	s.Log.Debug("Пытаемся проверить массив ссылок")
-
-	reqBatchJSON = *s.P.BatchURLValidator(&reqBatchJSON)
-
-	urls, err := s.P.BatchURLSaver(r.Context(), &reqBatchJSON)
-	if err != nil {
-		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	var respJSON = storage.RespBatchJSON{}
-	respBathJSON := make([]storage.RespBatchJSON, len(urls))
-
-	for id, v := range urls {
-		respJSON.ID = v.ID
-		switch {
-		case !v.Valid:
-			respJSON.URL = "url invalid"
-		case v.Exist:
-			respJSON.URL = "url exist"
-		default:
-			respJSON.URL = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
-		}
-		respBathJSON = append(respBathJSON, respJSON)
-	}
-
-	resp, err := json.Marshal(respBathJSON)
-	if err != nil {
-		http.Error(w, "Не удалось кодировать JSON: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(resp)
-
-	if err != nil {
-		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
-		return
-	}
+	return &reqBatchJSON, nil
 }

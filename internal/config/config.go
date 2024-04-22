@@ -29,6 +29,8 @@ type configBuilder struct {
 	config *Config
 }
 
+const baseFilePath = "/tmp/short-url-db.json"
+
 func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
 	c.config.LocalAddress.Port = port
@@ -110,4 +112,16 @@ func parseFlags(conf *Config) error {
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 	flag.Parse()
 	return nil
+}
+
+func SetConfig() *Config {
+	configBuilder := NewConfigBuilder()
+	configBuilder.SetLocalAddress("127.0.0.1", 8080)
+	configBuilder.SetBaseURL("127.0.0.1", 8080)
+	configBuilder.SetFileBase(baseFilePath)
+	configBuilder.SetLogger("Info")
+	configBuilder.ParseEnv()
+	configBuilder.ParseFlag()
+	conf := configBuilder.Build()
+	return conf
 }

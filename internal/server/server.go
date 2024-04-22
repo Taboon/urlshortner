@@ -1,8 +1,10 @@
 package server
 
 import (
-	"fmt"
+	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
@@ -19,9 +21,19 @@ type Server struct {
 }
 
 func (s *Server) Run(la config.Address) error {
-	err := http.ListenAndServe(la.String(), s.URLRouter())
-	if err != nil {
-		return fmt.Errorf("ошибка запуска сервера: %v", err)
+	srv := &http.Server{
+		Addr:         la.String(),
+		Handler:      s.URLRouter(), // ваш обработчик запросов
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("HTTP server error: %v", err)
+		}
+		return err
 	}
 	return nil
 }
@@ -29,10 +41,10 @@ func (s *Server) Run(la config.Address) error {
 func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", s.Log.RequestLogger(gzip.GzipMiddleware(s.sendURL)))
+	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.sendURL)))
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
-	r.Post("/", s.Log.RequestLogger(gzip.GzipMiddleware(s.getURL)))
-	r.Post("/api/shorten", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
-	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenBatchJSON)))
+	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
+	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenJSON)))
+	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenBatchJSON)))
 	return r
 }

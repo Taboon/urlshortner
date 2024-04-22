@@ -2,9 +2,12 @@ package entity
 
 import "errors"
 
+var ErrHasNoPrefix = errors.New("has no prefix http:// or https://")
+var ErrHasNoDot = errors.New("has no dot in url")
+
+var ErrURLExist = errors.New("url already exist")
+
 var ErrUnknownID = errors.New("unknown ID")
 var ErrEmptyFlag = errors.New("empty flag")
-var ErrEmptyAnswerDB = errors.New("empty answer DB")
-var ErrURLInvalid = errors.New("has no prefix http:// or https://")
-var ErrIsNoURL = errors.New("is no url")
-var ErrURLExist = errors.New("url already exist")
+
+var ErrNoURLToSave = errors.New("no have url to save")

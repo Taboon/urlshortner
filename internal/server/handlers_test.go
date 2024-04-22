@@ -326,7 +326,7 @@ func Test_shortenBatchJSON(t *testing.T) {
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 
 			if tt.expectedCode != http.StatusBadRequest {
-				var testedResp []storage.RespBatchJSON
+				var testedResp []storage.RespBatchURL
 
 				assert.Equal(t, true, json.Valid(respBody))
 
@@ -371,7 +371,7 @@ func TestGzipCompression(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))
+	handler := http.HandlerFunc(gzipMW.MiddlewareGzip(s.shortenJSON))
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 

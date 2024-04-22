@@ -5,11 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/entity"
 	"github.com/pressly/goose"
+	"os"
+	"strings"
 	"time"
 
 	pgx "github.com/jackc/pgx/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib" // postgres driver
 	"go.uber.org/zap"
 )
 
@@ -65,28 +69,32 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	return nil
 }
 
-func (p *Postgre) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
+func (p *Postgre) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for id, v := range urls {
-		// все изменения записываются в транзакцию
-		if v.Valid && !v.Exist {
-			_, err := tx.Exec(ctx,
-				"INSERT INTO urls (id, url) VALUES($1, $2)", id, v.URL)
-			if err != nil {
-				// если ошибка, то откатываем изменения
-				err := tx.Rollback(ctx)
-				if err != nil {
-					return err
-				}
-				return err
+
+	for _, v := range *b {
+		// если данные не валидны, пропускаем текущую итерацию
+		if v.Err != nil {
+			continue
+		}
+
+		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
+
+		_, err := tx.Exec(ctx, "INSERT INTO urls (id, url) VALUES($1, $2)", v.ID, v.URL)
+		if err != nil {
+			if err := tx.Rollback(ctx); err != nil {
+				return nil, err
 			}
+			return nil, err
 		}
 	}
-	// завершаем транзакцию
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
@@ -117,33 +125,19 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 	return URLData{URL: u, ID: i}, true, nil
 }
 
-func (p *Postgre) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
-
-	var values []interface{}
-	for _, v := range *urls {
-		if v.Valid && !v.Exist {
-			values = append(values, v.URL)
-		}
-	}
-
-	var queryInsert string
-	for i := 1; i <= len(values); i++ {
-		queryInsert += fmt.Sprintf("$%v", i)
-		if i < len(values) {
-			queryInsert += ","
-		}
-	}
+func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
+	// получаем данные для составления запроса
+	val, queryInsert := p.getQueryInsert(urls)
 
 	// Проверка существования урлов в базе данных
 	query := "SELECT url FROM urls WHERE url IN (" + queryInsert + ")"
-	rows, err := p.db.Query(ctx, query, values...)
+	rows, err := p.db.Query(ctx, query, val...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
 
-	existingUrls := make(map[string]bool)
 	for rows.Next() {
 		var url string
 		err := rows.Scan(&url)
@@ -151,22 +145,68 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]R
 			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
 		}
-		existingUrls[url] = true
-	}
-
-	// Вывод результатов
-	for i, url := range *urls {
-		if existingUrls[url.URL] {
-			p.Log.Info("URL уже есть в базе.", zap.String("url", url.URL))
-			(*urls)[i].Exist = true
-		} else {
-			(*urls)[i].Exist = false
+		for i, v := range *urls {
+			if v.URL == url {
+				(*urls)[i].Err = entity.ErrURLExist
+			}
 		}
 	}
 	return urls, nil
 }
 
-func (p *Postgre) RemoveURL(ctx context.Context, data URLData) error {
+func (p *Postgre) getQueryInsert(urls *ReqBatchURLs) ([]interface{}, string) {
+	val := make([]interface{}, 0, len(*urls))
+	var queryInsert string
+	i := 0
+	for _, v := range *urls {
+		if v.Err != nil {
+			continue
+		}
+		val = append(val, v.URL)
+		queryInsert += fmt.Sprintf("$%v", i+1)
+		queryInsert += ","
+		i++
+	}
+
+	queryInsert = strings.TrimSuffix(queryInsert, ",")
+	return val, queryInsert
+}
+
+func (p *Postgre) RemoveURL(_ context.Context, _ URLData) error {
 	// TODO implement me
 	panic("implement me4")
+}
+
+func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
+	db, err := pgx.Connect(context.Background(), conf.DataBase)
+
+	if err != nil {
+		fprintf, err := fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		if err != nil {
+			return nil, nil
+		}
+		panic(fprintf)
+	}
+
+	stor := NewPostgreBase(db, l)
+	err = stor.Ping()
+	if err != nil {
+		fprintf, err := fmt.Fprintf(os.Stderr, "Can't connect to database: %v\n", err)
+		if err != nil {
+			return nil, nil
+		}
+		panic(fprintf)
+	}
+
+	err = Migrations(conf.DataBase)
+	if err != nil {
+		fprintf, err := fmt.Fprintf(os.Stderr, "Can't created table: %v\n", err)
+		if err != nil {
+			return nil, nil
+		}
+		panic(fprintf)
+	}
+
+	l.Info("Использем Postge")
+	return db, stor
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"github.com/Taboon/urlshortner/internal/entity"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -14,25 +15,33 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
-func (sm *SafeMap) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
-	for id, v := range urls {
-		urlData.ID = id
+func (sm *SafeMap) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
+	var err error
+	b, err = sm.CheckBatchURL(ctx, b)
+	if err != nil {
+		return nil, err
+	}
+	urlData := URLData{}
+	for _, v := range *b {
+		urlData.ID = v.ID
 		urlData.URL = v.URL
 		err := sm.AddURL(ctx, urlData)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
 	for i, v := range *urls {
 		_, ok, err := sm.CheckURL(ctx, v.URL)
 		if err != nil {
 			return nil, err
 		}
-		(*urls)[i].Exist = ok
+		if ok {
+			(*urls)[i].Err = entity.ErrURLExist
+		}
 	}
 	return urls, nil
 }
@@ -52,7 +61,7 @@ func (sm *SafeMap) Ping() error {
 	return nil
 }
 
-func (sm *SafeMap) AddURL(ctx context.Context, data URLData) error {
+func (sm *SafeMap) AddURL(_ context.Context, data URLData) error {
 	sm.Log.Debug("Сохраняем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
@@ -78,7 +87,7 @@ func (sm *SafeMap) AddURL(ctx context.Context, data URLData) error {
 	return nil
 }
 
-func (sm *SafeMap) CheckID(ctx context.Context, id string) (URLData, bool, error) {
+func (sm *SafeMap) CheckID(_ context.Context, id string) (URLData, bool, error) {
 	sm.Log.Debug("Проверяем ID")
 	urlData := URLData{}
 	val, ok := sm.mapStor[id]
@@ -90,7 +99,7 @@ func (sm *SafeMap) CheckID(ctx context.Context, id string) (URLData, bool, error
 	return urlData, false, nil
 }
 
-func (sm *SafeMap) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
+func (sm *SafeMap) CheckURL(_ context.Context, url string) (URLData, bool, error) {
 	sm.Log.Debug("Проверяем URL")
 	urlData := URLData{}
 	val, ok := sm.reverseMapStor[url]
@@ -102,7 +111,7 @@ func (sm *SafeMap) CheckURL(ctx context.Context, url string) (URLData, bool, err
 	return urlData, false, nil
 }
 
-func (sm *SafeMap) RemoveURL(ctx context.Context, data URLData) error {
+func (sm *SafeMap) RemoveURL(_ context.Context, data URLData) error {
 	sm.Log.Debug("Удаляем URL")
 	sm.mu.Lock()
 	defer sm.mu.Unlock()

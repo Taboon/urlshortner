@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
+	"github.com/Taboon/urlshortner/internal/entity"
 	"go.uber.org/zap"
 	"io"
 	"os"
@@ -16,27 +16,28 @@ type FileStorage struct {
 	Log      *zap.Logger
 }
 
-var urlData = URLData{}
-
-func (f *FileStorage) AddBatchURL(ctx context.Context, urls map[string]ReqBatchJSON) error {
-	for id, v := range urls {
-		urlData.ID = id
+func (f *FileStorage) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
+	urlData := URLData{}
+	for _, v := range *b {
+		urlData.ID = v.ID
 		urlData.URL = v.URL
 		err := f.AddURL(ctx, urlData)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (f *FileStorage) CheckBatchURL(ctx context.Context, urls *[]ReqBatchJSON) (*[]ReqBatchJSON, error) {
+func (f *FileStorage) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
 	for i, v := range *urls {
 		_, ok, err := f.CheckURL(ctx, v.URL)
 		if err != nil {
 			return nil, err
 		}
-		(*urls)[i].Exist = ok
+		if ok {
+			(*urls)[i].Err = entity.ErrURLExist
+		}
 	}
 	return urls, nil
 }
@@ -59,7 +60,7 @@ func (f *FileStorage) Ping() error {
 	return nil
 }
 
-func (f *FileStorage) AddURL(ctx context.Context, data URLData) error {
+func (f *FileStorage) AddURL(_ context.Context, data URLData) error {
 	file, err := os.OpenFile(f.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	defer func() {
 		err := file.Close()
@@ -78,7 +79,7 @@ func (f *FileStorage) AddURL(ctx context.Context, data URLData) error {
 	return nil
 }
 
-func (f *FileStorage) CheckID(ctx context.Context, id string) (URLData, bool, error) {
+func (f *FileStorage) CheckID(_ context.Context, id string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
@@ -109,7 +110,7 @@ func (f *FileStorage) CheckID(ctx context.Context, id string) (URLData, bool, er
 }
 
 // Возвращает ok = false если URL нет в базе
-func (f *FileStorage) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
+func (f *FileStorage) CheckURL(_ context.Context, url string) (URLData, bool, error) {
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0774)
 	defer func() {
 		err := file.Close()
@@ -169,54 +170,6 @@ func (f *FileStorage) Get(repository *Repository) error {
 	return nil
 }
 
-func (f *FileStorage) RemoveURL(ctx context.Context, data URLData) error {
-	file, err := os.OpenFile(f.fileName, os.O_RDWR, 0774)
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			f.Log.Error("Ошибка закрытия файла", zap.Error(err))
-		}
-	}()
-
-	if err != nil {
-		return err
-	}
-	scanner := bufio.NewScanner(file)
-	var shortUrls []URLData
-
-	for scanner.Scan() {
-		var url URLData
-		err := json.Unmarshal(scanner.Bytes(), &url)
-		if err != nil {
-			return err
-		}
-		shortUrls = append(shortUrls, url)
-	}
-
-	var newURLs []URLData
-	urlForRemove := false
-
-	for _, v := range shortUrls {
-		if v == data {
-			urlForRemove = true
-		} else {
-			newURLs = append(newURLs, v)
-		}
-	}
-
-	if urlForRemove {
-		return nil
-	}
-
-	body, err := json.Marshal(newURLs)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(body)
-	if err != nil {
-		return err
-	}
-
-	return errors.New("id not found")
+func (f *FileStorage) RemoveURL(_ context.Context, _ URLData) error { //
+	return nil
 }
