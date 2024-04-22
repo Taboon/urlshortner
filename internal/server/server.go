@@ -30,7 +30,6 @@ func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/{id}", s.Log.RequestLogger(gzip.GzipMiddleware(s.sendURL)))
-	r.Get("/ping", s.Log.RequestLogger(s.ping))
 	r.Post("/", s.Log.RequestLogger(gzip.GzipMiddleware(s.getURL)))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.GzipMiddleware(s.shortenJSON)))
 	return r
