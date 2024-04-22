@@ -46,5 +46,6 @@ func (s *Server) URLRouter() chi.Router {
 	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenJSON)))
 	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenBatchJSON)))
+
 	return r
 }

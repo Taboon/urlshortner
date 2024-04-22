@@ -41,6 +41,7 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+
 func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 	err := s.P.Ping()
 	if err != nil {
