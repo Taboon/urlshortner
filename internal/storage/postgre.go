@@ -36,15 +36,18 @@ func Migrations(dsn string) error {
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(db)
 
 	if err := goose.SetDialect("postgres"); err != nil {
 		return err
 	}
-	if err := goose.Up(db, "internal/db/migrations"); err != nil {
-		return err
-	}
-	return nil
+
+	return goose.Up(db, "internal/db/migrations")
 }
 
 func (p *Postgre) Ping() error {
@@ -53,7 +56,6 @@ func (p *Postgre) Ping() error {
 	defer cancel()
 	if err := p.db.Ping(ctx); err != nil {
 		p.Log.Error("Ошибка соединения с БД")
-		fmt.Println(err)
 		return err
 	}
 	p.Log.Info("Есть соединение с БД")
