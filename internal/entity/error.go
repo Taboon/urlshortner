@@ -11,3 +11,4 @@ var ErrUnknownID = errors.New("unknown ID")
 var ErrEmptyFlag = errors.New("empty flag")
 
 var ErrNoURLToSave = errors.New("no have url to save")
+var ErrJSONInvalid = errors.New("invalid json")

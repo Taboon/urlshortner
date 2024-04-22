@@ -60,7 +60,7 @@ func (u *URLProcessor) SaveURL(ctx context.Context, url string) (string, error) 
 	return id, nil
 }
 
-func (u *URLProcessor) BatchURLSaver(ctx context.Context, b *storage.ReqBatchURLs) (*storage.ReqBatchURLs, error) {
+func (u *URLProcessor) BatchURLSave(ctx context.Context, b *storage.ReqBatchURLs) (*storage.ReqBatchURLs, error) {
 	u.Log.Info("Пытаемся сохранить массив URL")
 
 	if len(*b) < 1 {
@@ -75,13 +75,13 @@ func (u *URLProcessor) BatchURLSaver(ctx context.Context, b *storage.ReqBatchURL
 		return nil, err
 	}
 
-	b, err = u.Repo.AddBatchURL(ctx, b)
+	b, err = u.Repo.WriteBatchURL(ctx, b)
 	if err != nil {
 		return nil, err
 	}
 
 	if u.Backup != nil {
-		_, err = u.Backup.AddBatchURL(ctx, b)
+		_, err = u.Backup.WriteBatchURL(ctx, b)
 		if err != nil {
 			u.Log.Error("Ошибка сохранения бекапа")
 		}

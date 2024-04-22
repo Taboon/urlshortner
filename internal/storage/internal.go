@@ -15,12 +15,7 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
-func (sm *SafeMap) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
-	var err error
-	b, err = sm.CheckBatchURL(ctx, b)
-	if err != nil {
-		return nil, err
-	}
+func (sm *SafeMap) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	urlData := URLData{}
 	for _, v := range *b {
 		urlData.ID = v.ID
@@ -30,7 +25,7 @@ func (sm *SafeMap) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchU
 			return nil, err
 		}
 	}
-	return nil, nil
+	return b, nil
 }
 
 func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
@@ -100,7 +95,7 @@ func (sm *SafeMap) CheckID(_ context.Context, id string) (URLData, bool, error) 
 }
 
 func (sm *SafeMap) CheckURL(_ context.Context, url string) (URLData, bool, error) {
-	sm.Log.Debug("Проверяем URL")
+	sm.Log.Debug("Проверяем URL", zap.String("url", url))
 	urlData := URLData{}
 	val, ok := sm.reverseMapStor[url]
 	if ok {

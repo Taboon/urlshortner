@@ -267,7 +267,7 @@ func Test_shortenBatchJSON(t *testing.T) {
 		expectedBody string
 	}{
 		{name: "test1", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://yandex.ru\"},{\"correlation_id\": \"b\",\"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
-		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": true}},
+		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
 		{name: "test3", request: "[{\"correlation_id\": \"a\", \"original_url\": \"ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://yandexru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": false}},
 		{name: "test4", request: "[{ \"https://yandex.ru\"}]", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
@@ -276,7 +276,6 @@ func Test_shortenBatchJSON(t *testing.T) {
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	//configBuilder.SetFileBase("./tmp/short-url-db.json")
 	configBuilder.SetLogger("Debug")
 	conf := configBuilder.Build()
 	//инициализируем логгер

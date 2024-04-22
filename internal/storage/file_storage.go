@@ -16,7 +16,7 @@ type FileStorage struct {
 	Log      *zap.Logger
 }
 
-func (f *FileStorage) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
+func (f *FileStorage) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	urlData := URLData{}
 	for _, v := range *b {
 		urlData.ID = v.ID

@@ -106,7 +106,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, entity.ErrURLExist):
 		w.WriteHeader(http.StatusConflict)
-	case !errors.Is(err, entity.ErrURLExist):
+	case err != nil && !errors.Is(err, entity.ErrURLExist):
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
 	default:
@@ -147,25 +147,26 @@ func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON
 
 func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 	// получаем все url в json
-	URLs, err := getReqBatchJSON(w, r)
+	urls, err := getReqBatchJSON(w, r)
 	if err != nil {
 		s.Log.Error("Ошибка получения JSON", zap.Error(err))
+		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
 		return
 	}
-	if len(*URLs) == 0 {
+	if len(*urls) == 0 {
 		http.Error(w, "Пустой JSON", http.StatusBadRequest)
 		return
 	}
 
 	// пытаемся сохранить
-	URLs, err = s.P.BatchURLSaver(r.Context(), URLs)
+	urls, err = s.P.BatchURLSave(r.Context(), urls)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// пишем результат в JSON
-	respBathJSON := s.getRespBatchJSON(URLs)
+	respBathJSON := s.getRespBatchJSON(urls)
 
 	// отправляем ответ
 	w.Header().Set("Content-Type", "application/json")
@@ -175,7 +176,7 @@ func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getRespBatchJSON(urls *storage.ReqBatchURLs) storage.RespBatchURLs {
 	var respURL = storage.RespBatchURL{}
-	var respBathJSON = make(storage.RespBatchURLs, 0, len(*urls))
+	var respBathJSON = storage.RespBatchURLs{}
 
 	for _, v := range *urls {
 		respURL.ID = v.ExternalID
@@ -215,7 +216,7 @@ func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchU
 
 	if !json.Valid(req) {
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return nil, err
+		return nil, entity.ErrJSONInvalid
 	}
 
 	err = json.Unmarshal(req, &reqBatchJSON)

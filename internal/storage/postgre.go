@@ -69,7 +69,7 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	return nil
 }
 
-func (p *Postgre) AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
+func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	tx, err := p.db.Begin(ctx)
 	if err != nil {
 		return nil, err

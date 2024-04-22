@@ -8,7 +8,7 @@ type Repository interface {
 	// AddURL Возвращает ошибку, если не удалось добавить URL
 	AddURL(ctx context.Context, data URLData) error
 	// AddBatchURL Возвращает ошибку, если не удалось добавить массив URL
-	AddBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error)
+	WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error)
 	// CheckID Возвращает \URLData и true, если идентификатор найден, иначе возвращает пустую структуру \URLData и false.
 	CheckID(ctx context.Context, id string) (URLData, bool, error)
 	// CheckURL Возвращает \URLData и true, если URL найден, иначе возвращает пустую структуру \URLData и false.
