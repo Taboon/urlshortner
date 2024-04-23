@@ -84,7 +84,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) { //nolint:funlen
+func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("shortenJSON")
 	// получаем JSON
 	requestBody, err := s.getURLJSON(w, r)
@@ -106,8 +106,8 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) { //nolint:
 	id, err := s.P.SaveURL(r.Context(), url)
 	switch {
 	case errors.Is(err, entity.ErrURLExist):
-		w.WriteHeader(http.StatusConflict)
 		s.Log.Error("URL exist", zap.String("url", url), zap.String("id", id), zap.Error(err))
+		w.WriteHeader(http.StatusConflict)
 	case err != nil && !errors.Is(err, entity.ErrURLExist):
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
