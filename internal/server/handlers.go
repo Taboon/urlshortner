@@ -67,7 +67,9 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	id, err := s.P.SaveURL(r.Context(), url)
 
-	s.writeResponse(s.setHeader(w, err), []byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
+	response := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
+
+	s.writeResponse(s.setHeader(w, err), response)
 }
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {

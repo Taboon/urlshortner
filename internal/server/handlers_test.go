@@ -179,6 +179,7 @@ func Test_getUrl(t *testing.T) {
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 			body, _ := io.ReadAll(resp.Body)
+			fmt.Println("=====")
 			fmt.Println(string(body))
 		})
 	}
