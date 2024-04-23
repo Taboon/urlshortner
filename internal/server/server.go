@@ -41,9 +41,9 @@ func (s *Server) Run(la config.Address) error {
 func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
-	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.sendURL)))
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
-	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
+	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
+	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortURL)))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenJSON)))
 	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenBatchJSON)))
 

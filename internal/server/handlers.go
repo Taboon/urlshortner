@@ -25,7 +25,7 @@ const (
 	httpPrefix = "http://"
 )
 
-func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
@@ -50,7 +50,7 @@ func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
+func (s *Server) shortURL(w http.ResponseWriter, r *http.Request) {
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
@@ -67,9 +67,14 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 
 	id, err := s.P.SaveURL(r.Context(), url)
 
-	response := fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)
+	w = s.setHeader(w, err)
 
-	s.writeResponse(s.setHeader(w, err), response)
+	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
+
+	if err != nil {
+		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 }
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {

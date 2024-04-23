@@ -71,7 +71,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	// Создаем тестовый сервер
-	server := httptest.NewServer(http.HandlerFunc(s.sendURL))
+	server := httptest.NewServer(http.HandlerFunc(s.getURL))
 	defer server.Close()
 
 	// Создаем HTTP клиент для выполнения запросов к тестовому серверу
@@ -156,7 +156,7 @@ func Test_getUrl(t *testing.T) {
 	err = s.P.Repo.AddURL(context.Background(), urlMock)
 	require.NoError(t, err)
 
-	server := httptest.NewServer(http.HandlerFunc(s.getURL))
+	server := httptest.NewServer(http.HandlerFunc(s.shortURL))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -179,7 +179,6 @@ func Test_getUrl(t *testing.T) {
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 			body, _ := io.ReadAll(resp.Body)
-			fmt.Println("=====")
 			fmt.Println(string(body))
 		})
 	}
