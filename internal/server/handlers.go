@@ -41,7 +41,6 @@ func (s *Server) sendURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-
 func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 	err := s.P.Ping()
 	if err != nil {
@@ -86,6 +85,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
+	s.Log.Info("shortenJSON")
 	// получаем JSON
 	requestBody, err := s.getURLJSON(w, r)
 	if err != nil {
@@ -147,6 +147,7 @@ func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON
 }
 
 func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
+	s.Log.Info("shortenBatchJSON")
 	// получаем все url в json
 	urls, err := getReqBatchJSON(w, r)
 	if err != nil {
