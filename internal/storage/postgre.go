@@ -24,6 +24,8 @@ type Postgre struct {
 
 var _ Repository = (*Postgre)(nil)
 
+const dirMigrations = "internal/db/migrations"
+
 func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
 	return &Postgre{
 		db:  db,
@@ -47,7 +49,7 @@ func Migrations(dsn string) error {
 		return err
 	}
 
-	return goose.Up(db, "internal/db/migrations")
+	return goose.Up(db, dirMigrations)
 }
 
 func (p *Postgre) Ping() error {
@@ -85,7 +87,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, "INSERT INTO urls (id, url) VALUES($1, $2)", v.ID, v.URL)
+		_, err := tx.Exec(ctx, "INSERT INTO urls (id, url) VALUES ($1, $2)", v.ID, v.URL)
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
 				return nil, err
