@@ -84,7 +84,7 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
+func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) { //nolint:funlen
 	s.Log.Info("shortenJSON")
 	// получаем JSON
 	requestBody, err := s.getURLJSON(w, r)
