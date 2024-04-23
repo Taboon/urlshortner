@@ -180,7 +180,7 @@ func (s *Server) getRespBatchJSON(urls *storage.ReqBatchURLs) storage.RespBatchU
 	for _, v := range *urls {
 		respURL.ID = v.ExternalID
 
-		//в кейсах можно добавить обработку на каждый тип ошибки
+		// в кейсах можно добавить обработку на каждый тип ошибки
 		switch {
 		case v.Err != nil:
 			respURL.URL = v.Err.Error()
