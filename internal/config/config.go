@@ -119,7 +119,7 @@ func SetConfig() *Config {
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase(baseFilePath)
-	configBuilder.SetLogger("Info")
+	configBuilder.SetLogger("Debug")
 	configBuilder.ParseEnv()
 	configBuilder.ParseFlag()
 	conf := configBuilder.Build()
