@@ -132,7 +132,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	val, queryInsert := p.getQueryInsert(urls)
 
 	// Проверка существования урлов в базе данных
-	query := "SELECT url FROM urls WHERE url IN (" + queryInsert + ")"
+	query := "SELECT url, id FROM urls WHERE url IN (" + queryInsert + ")"
 	rows, err := p.db.Query(ctx, query, val...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
@@ -142,7 +142,8 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 
 	for rows.Next() {
 		var url string
-		err := rows.Scan(&url)
+		var id string
+		err := rows.Scan(&url, &id)
 		if err != nil {
 			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
@@ -150,6 +151,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 		for i, v := range *urls {
 			if v.URL == url {
 				(*urls)[i].Err = entity.ErrURLExist
+				(*urls)[i].ID = id
 			}
 		}
 	}

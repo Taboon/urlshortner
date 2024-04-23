@@ -66,22 +66,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	id, err := s.P.SaveURL(r.Context(), url)
-	if err != nil {
-		if errors.Is(err, entity.ErrURLExist) {
-			w.WriteHeader(http.StatusConflict)
-			return
-		}
-		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write([]byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
-
-	if err != nil {
-		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
-		return
-	}
+	s.writeResponse(s.setHeader(w, err), []byte(fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)))
 }
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
@@ -104,20 +90,23 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 
 	// сохраняем URL
 	id, err := s.P.SaveURL(r.Context(), url)
-	switch {
-	case errors.Is(err, entity.ErrURLExist):
-		s.Log.Error("URL exist", zap.String("url", url), zap.String("id", id), zap.Error(err))
-		w.WriteHeader(http.StatusConflict)
-	case err != nil && !errors.Is(err, entity.ErrURLExist):
-		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
-		return
-	default:
-		w.WriteHeader(http.StatusCreated)
-	}
 
 	response := Response{Result: fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, id)}
 
-	s.writeResponse(w, response)
+	s.writeResponse(s.setHeader(w, err), response)
+}
+
+func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter {
+	switch {
+	case errors.Is(err, entity.ErrURLExist):
+		w.WriteHeader(http.StatusConflict)
+	case err != nil && !errors.Is(err, entity.ErrURLExist):
+		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
+		return w
+	default:
+		w.WriteHeader(http.StatusCreated)
+	}
+	return w
 }
 
 func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON, error) {
@@ -183,9 +172,12 @@ func (s *Server) getRespBatchJSON(urls *storage.ReqBatchURLs) storage.RespBatchU
 
 	for _, v := range *urls {
 		respURL.ID = v.ExternalID
-		if v.Err != nil {
+
+		//в кейсах можно добавить обработку на каждый тип ошибки
+		switch {
+		case v.Err != nil:
 			respURL.URL = v.Err.Error()
-		} else {
+		default:
 			respURL.URL = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, v.ID)
 		}
 		respBathJSON = append(respBathJSON, respURL)
