@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/Taboon/urlshortner/internal/entity"
 	"go.uber.org/zap"
 	"sync"
@@ -17,12 +18,12 @@ type SafeMap struct {
 
 func (sm *SafeMap) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	urlData := URLData{}
-	for _, v := range *b {
+	for i, v := range *b {
 		urlData.ID = v.ID
 		urlData.URL = v.URL
 		err := sm.AddURL(ctx, urlData)
 		if err != nil {
-			return nil, err
+			(*b)[i].Err = entity.ErrURLExist
 		}
 	}
 	return b, nil
@@ -63,20 +64,21 @@ func (sm *SafeMap) AddURL(_ context.Context, data URLData) error {
 
 	// Проверяем, что map был инициализирован
 	sm.mapChecker()
-
-	// Пишем данные в map
+	fmt.Println(data.URL)
+	// Проверяем наличие данных в массиве
+	fmt.Println(sm.mapStor)
 	_, ok := sm.mapStor[data.ID]
 	if ok {
 		err := errors.New("id exist")
 		return err
 	}
-
+	fmt.Println(sm.reverseMapStor)
 	_, ok = sm.reverseMapStor[data.URL]
 	if ok {
 		err := errors.New("url exist")
 		return err
 	}
-
+	// Пишем данные в map
 	sm.mapStor[data.ID] = data.URL
 	sm.reverseMapStor[data.URL] = data.ID
 	return nil
