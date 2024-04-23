@@ -107,6 +107,7 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, entity.ErrURLExist):
 		w.WriteHeader(http.StatusConflict)
+		s.Log.Error("URL exist", zap.String("url", url), zap.String("id", id), zap.Error(err))
 	case err != nil && !errors.Is(err, entity.ErrURLExist):
 		http.Error(w, "Не удалось сохранить URL: "+err.Error(), http.StatusBadRequest)
 		return
