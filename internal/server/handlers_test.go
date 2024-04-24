@@ -3,12 +3,14 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -26,26 +28,24 @@ func TestSendUrl(t *testing.T) {
 		ID:  "AAAAaaaa",
 	}
 
-	//инициализируем конфиг
+	// инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
 	configBuilder.SetLogger("Info")
 	conf := configBuilder.Build()
-	//инициализируем логгер
+	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
-	//инициализируем хранилище
+	require.NoError(t, err, "Error initialize logger")
+	// инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
+	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
 		Repo: stor,
 		Log:  l,
 	}
-	//инициализируем сервер
+	// инициализируем сервер
 	s := Server{
 		LocalAddress: conf.LocalAddress.String(),
 		BaseURL:      conf.BaseURL.String(),
@@ -55,11 +55,8 @@ func TestSendUrl(t *testing.T) {
 		},
 	}
 
-	err = s.P.Repo.AddURL(urlMock)
-	if err != nil {
-		fmt.Println("Error add URL mock")
-		return
-	}
+	err = s.P.Repo.AddURL(context.Background(), urlMock)
+	require.NoError(t, err, "Error add URL mock")
 
 	tests := []struct {
 		name         string
@@ -74,7 +71,7 @@ func TestSendUrl(t *testing.T) {
 	}
 
 	// Создаем тестовый сервер
-	server := httptest.NewServer(http.HandlerFunc(s.sendURL))
+	server := httptest.NewServer(http.HandlerFunc(s.getURL))
 	defer server.Close()
 
 	// Создаем HTTP клиент для выполнения запросов к тестовому серверу
@@ -89,25 +86,19 @@ func TestSendUrl(t *testing.T) {
 			fmt.Println(url)
 			// Создаем GET запрос
 			req, err := http.NewRequest(tt.method, url, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err, "Error new request")
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err, "Error do request")
 			body, _ := io.ReadAll(resp.Body)
 			fmt.Println(string(body))
 			fmt.Println(resp)
 
 			defer resp.Body.Close()
 
-			id, _, err := s.P.Repo.CheckID("AAAAaaaa")
-			if err != nil {
-				return
-			}
+			id, _, err := s.P.Repo.CheckID(context.Background(), "AAAAaaaa")
+			require.NoError(t, err, "Error check id")
 			fmt.Println(id)
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -132,7 +123,7 @@ func Test_getUrl(t *testing.T) {
 	}{
 		{name: "test1", method: http.MethodPost, body: "http://ya2.ru", contentType: "text/plain", expectedCode: http.StatusCreated},
 		{name: "test2", method: http.MethodPost, body: "htt://ya2.ru", contentType: "", expectedCode: http.StatusBadRequest},
-		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusBadRequest},
+		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusConflict},
 	}
 
 	//инициализируем конфиг
@@ -144,9 +135,7 @@ func Test_getUrl(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -164,13 +153,10 @@ func Test_getUrl(t *testing.T) {
 		},
 	}
 
-	err = s.P.Repo.AddURL(urlMock)
-	if err != nil {
-		fmt.Println("Error add URL mock")
-		return
-	}
+	err = s.P.Repo.AddURL(context.Background(), urlMock)
+	require.NoError(t, err)
 
-	server := httptest.NewServer(http.HandlerFunc(s.getURL))
+	server := httptest.NewServer(http.HandlerFunc(s.shortURL))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -184,15 +170,11 @@ func Test_getUrl(t *testing.T) {
 
 			// Создаем GET запрос
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.body))
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -225,9 +207,7 @@ func Test_shortenJSON(t *testing.T) {
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -248,7 +228,7 @@ func Test_shortenJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
 	defer server.Close()
 
-	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	client := &http.Client{CheckRedirect: func(_ *http.Request, via []*http.Request) error {
 		return nil
 	}}
 
@@ -260,20 +240,14 @@ func Test_shortenJSON(t *testing.T) {
 			fmt.Println(tt.request)
 			req.Header.Set("Content-Type", tt.contentType)
 
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			respBody, err := io.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			fmt.Println(string(respBody))
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
@@ -281,21 +255,32 @@ func Test_shortenJSON(t *testing.T) {
 	}
 }
 
-func TestGzipCompression(t *testing.T) {
-	requestBody := `{"url": "https://ya.ru"}`
+func Test_shortenBatchJSON(t *testing.T) {
+	regex := regexp.MustCompile(`^(https?|http)://[^\s/$.?#].[^\s]*$`)
+
+	tests := []struct {
+		name         string
+		request      string
+		response     map[string]bool
+		contentType  string
+		expectedCode int
+		expectedBody string
+	}{
+		{name: "test1", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://yandex.ru\"},{\"correlation_id\": \"b\",\"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
+		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://otherurl.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": false}},
+		{name: "test3", request: "[{\"correlation_id\": \"a\", \"original_url\": \"ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://yandexru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": false}},
+		{name: "test4", request: "[{ \"https://yandex.ru\"}]", contentType: "application/json", expectedCode: http.StatusBadRequest},
+	}
 
 	//инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Info")
+	configBuilder.SetLogger("Debug")
 	conf := configBuilder.Build()
 	//инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	require.NoError(t, err)
 	//инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	//инициализируем URL процессор
@@ -313,7 +298,79 @@ func TestGzipCompression(t *testing.T) {
 		},
 	}
 
-	handler := http.HandlerFunc(gzipMW.GzipMiddleware(s.shortenJSON))
+	server := httptest.NewServer(http.HandlerFunc(s.shortenBatchJSON))
+	defer server.Close()
+
+	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return nil
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			url := server.URL + "/api/shorten/batch"
+
+			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
+			fmt.Println(tt.request)
+			req.Header.Set("Content-Type", tt.contentType)
+
+			require.NoError(t, err)
+
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			respBody, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			fmt.Println(string(respBody))
+			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
+
+			if tt.expectedCode != http.StatusBadRequest {
+				var testedResp []storage.RespBatchURL
+
+				assert.Equal(t, true, json.Valid(respBody))
+
+				err = json.Unmarshal(respBody, &testedResp)
+				assert.NoError(t, err)
+
+				for _, v := range testedResp {
+					assert.Equal(t, tt.response[v.ID], regex.MatchString(v.URL))
+				}
+			}
+		})
+	}
+}
+
+func TestGzipCompression(t *testing.T) {
+	requestBody := `{"url": "https://ya.ru"}`
+
+	//инициализируем конфиг
+	configBuilder := config.NewConfigBuilder()
+	configBuilder.SetLocalAddress("127.0.0.1", 8080)
+	configBuilder.SetBaseURL("127.0.0.1", 8080)
+	configBuilder.SetFileBase("/tmp/short-url-db.json")
+	configBuilder.SetLogger("Info")
+	conf := configBuilder.Build()
+	//инициализируем логгер
+	l, err := logger.Initialize(*conf)
+	require.NoError(t, err)
+	//инициализируем хранилище
+	stor := storage.NewMemoryStorage(l)
+	//инициализируем URL процессор
+	urlProcessor := usecase.URLProcessor{
+		Repo: stor,
+		Log:  l,
+	}
+	//инициализируем сервер
+	s := Server{
+		LocalAddress: conf.LocalAddress.String(),
+		BaseURL:      conf.BaseURL.String(),
+		P:            urlProcessor,
+		Log: &logger.Logger{
+			Logger: l,
+		},
+	}
+
+	handler := http.HandlerFunc(gzipMW.MiddlewareGzip(s.shortenJSON))
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
@@ -351,7 +408,7 @@ func TestGzipCompression(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(r)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		require.Equal(t, http.StatusConflict, resp.StatusCode)
 
 		defer resp.Body.Close()
 
@@ -360,7 +417,7 @@ func TestGzipCompression(t *testing.T) {
 
 		_, err = io.ReadAll(zr)
 		require.NoError(t, err)
-
+		//TODO URL validate
 		//require.JSONEq(t, successBody, string(b))
 	})
 }

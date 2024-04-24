@@ -2,74 +2,61 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
 	"github.com/Taboon/urlshortner/internal/storage"
-	"github.com/jackc/pgx/v5"
+	pgx "github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"log"
-	"os"
 )
 
-const baseFilePath = "/tmp/short-url-db.json"
+func main() { //nolint:funlen
+	conf := config.SetConfig()
 
-func main() {
-	//инициализируем конфиг
-	configBuilder := config.NewConfigBuilder()
-	configBuilder.SetLocalAddress("127.0.0.1", 8080)
-	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase(baseFilePath)
-	configBuilder.SetLogger("Info")
-	configBuilder.ParseEnv()
-	configBuilder.ParseFlag()
-	conf := configBuilder.Build()
-
-	//инициализируем логгер
+	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//инициализируем хранилище
+	// инициализируем хранилище
 	var stor storage.Repository
 
 	switch {
-	case conf.DataDase != "":
-		//urlExample := "postgres://postgres:1101@192.168.31.40:5432/urlshortnerdb"
-		db, err := pgx.Connect(context.Background(), conf.DataDase)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-			os.Exit(1)
-		}
-		defer db.Close(context.Background())
-		stor = storage.NewPostgreBase(db, l)
-		l.Info("Использем Postge")
+	case conf.DataBase != "":
+		db, s := storage.SetPostgres(conf, l)
+		stor = s
+		defer func(db *pgx.Conn, ctx context.Context) {
+			err := db.Close(ctx)
+			if err != nil {
+				panic(err)
+			}
+		}(db, context.Background())
 	default:
 		stor = storage.NewMemoryStorage(l)
-		l.Info("Использем память приложения для хранения")
+		l.Info("Используем память приложения для хранения")
 	}
 
-	//инициализируем URL процессор
+	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
 		Repo: stor,
 		Log:  l,
 	}
 
-	//инициализируем бекап и загружаем из него данные
+	// инициализируем бекап и загружаем из него данные
 	if conf.FileBase.File != "" {
 		l.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
 		backuper := storage.NewFileStorage(conf.FileBase.File, l)
 		err := backuper.Get(&stor)
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 		urlProcessor.Backup = backuper
 	}
 
-	//инициализируем сервер
+	// инициализируем сервер
 	srv := server.Server{
 		LocalAddress: conf.LocalAddress.String(),
 		BaseURL:      conf.BaseURL.String(),
@@ -82,7 +69,6 @@ func main() {
 	l.Info("Running server", zap.String("address", conf.LocalAddress.String()), zap.String("loglevel", conf.LogLevel))
 
 	if err := srv.Run(conf.LocalAddress); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-
 }

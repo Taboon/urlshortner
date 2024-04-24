@@ -11,17 +11,17 @@ type Config struct {
 	LocalAddress Address
 	BaseURL      Address
 	FileBase     FileBase
-	DataDase     string
+	DataBase     string
 	LogLevel     string
 }
 
-type ConfigBuilder interface {
-	SetLocalAddress(ip string, port int) ConfigBuilder
-	SetBaseURL(ip string, port int) ConfigBuilder
-	SetFileBase(path string) ConfigBuilder
-	SetLogger(level string) ConfigBuilder
-	ParseFlag() ConfigBuilder
-	ParseEnv() ConfigBuilder
+type Builder interface {
+	SetLocalAddress(ip string, port int) Builder
+	SetBaseURL(ip string, port int) Builder
+	SetFileBase(path string) Builder
+	SetLogger(level string) Builder
+	ParseFlag() Builder
+	ParseEnv() Builder
 	Build() *Config
 }
 
@@ -29,29 +29,31 @@ type configBuilder struct {
 	config *Config
 }
 
-func (c *configBuilder) SetLocalAddress(ip string, port int) ConfigBuilder {
+const baseFilePath = "/tmp/short-url-db.json"
+
+func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
 	c.config.LocalAddress.Port = port
 	return c
 }
 
-func (c *configBuilder) SetBaseURL(ip string, port int) ConfigBuilder {
+func (c *configBuilder) SetBaseURL(ip string, port int) Builder {
 	c.config.BaseURL.IP = ip
 	c.config.BaseURL.Port = port
 	return c
 }
 
-func (c *configBuilder) SetFileBase(path string) ConfigBuilder {
+func (c *configBuilder) SetFileBase(path string) Builder {
 	c.config.FileBase.File = path
 	return c
 }
 
-func (c *configBuilder) SetLogger(level string) ConfigBuilder {
+func (c *configBuilder) SetLogger(level string) Builder {
 	c.config.LogLevel = level
 	return c
 }
 
-func (c *configBuilder) ParseFlag() ConfigBuilder {
+func (c *configBuilder) ParseFlag() Builder {
 	err := parseEnv(c.config)
 	if err != nil {
 		fmt.Println(err)
@@ -59,7 +61,7 @@ func (c *configBuilder) ParseFlag() ConfigBuilder {
 	return c
 }
 
-func (c *configBuilder) ParseEnv() ConfigBuilder {
+func (c *configBuilder) ParseEnv() Builder {
 	err := parseFlags(c.config)
 	if err != nil {
 		fmt.Println(err)
@@ -70,7 +72,7 @@ func (c *configBuilder) ParseEnv() ConfigBuilder {
 func (c *configBuilder) Build() *Config {
 	return c.config
 }
-func NewConfigBuilder() ConfigBuilder {
+func NewConfigBuilder() Builder {
 	return &configBuilder{
 		config: &Config{},
 	}
@@ -97,17 +99,29 @@ func parseEnv(conf *Config) error {
 		conf.FileBase.File = envBasePath
 	}
 	if envDBAddres := os.Getenv("DATABASE_DSN"); envDBAddres != "" {
-		conf.DataDase = envDBAddres
+		conf.DataBase = envDBAddres
 	}
 	return nil
 }
 
 func parseFlags(conf *Config) error {
 	flag.Var(&conf.BaseURL, "b", "address to make short url")
-	flag.StringVar(&conf.DataDase, "d", "", "data base url")
+	flag.StringVar(&conf.DataBase, "d", "", "data base url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
 	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
 	flag.Parse()
 	return nil
+}
+
+func SetConfig() *Config {
+	configBuilder := NewConfigBuilder()
+	configBuilder.SetLocalAddress("127.0.0.1", 8080)
+	configBuilder.SetBaseURL("127.0.0.1", 8080)
+	configBuilder.SetFileBase(baseFilePath)
+	configBuilder.SetLogger("Debug")
+	configBuilder.ParseEnv()
+	configBuilder.ParseFlag()
+	conf := configBuilder.Build()
+	return conf
 }

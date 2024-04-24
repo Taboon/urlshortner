@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-const baseFilePath = "/tmp/short-url-db.json"
-
 func TestBuildConfig(t *testing.T) {
 	// Mock environment variables
 	err := os.Setenv("server_address", "127.0.0.1:8081")
