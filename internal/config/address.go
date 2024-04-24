@@ -2,9 +2,10 @@ package config
 
 import (
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/entity"
 	"strconv"
 	"strings"
+
+	"github.com/Taboon/urlshortner/internal/entity"
 )
 
 type Address struct {
