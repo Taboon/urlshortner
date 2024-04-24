@@ -97,10 +97,6 @@ func TestSendUrl(t *testing.T) {
 
 			defer resp.Body.Close()
 
-			id, _, err := s.P.Repo.CheckID(context.Background(), "AAAAaaaa")
-			require.NoError(t, err, "Error check id")
-			fmt.Println(id)
-
 			assert.Equal(t, tt.expectedCode, resp.StatusCode, "Код ответа не совпадает с ожидаемым")
 		})
 	}

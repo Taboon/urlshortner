@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/entity"
 	"go.uber.org/zap"
 	"sync"
+
+	"github.com/Taboon/urlshortner/internal/entity"
 )
 
 type SafeMap struct {
