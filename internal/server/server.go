@@ -23,7 +23,7 @@ type Server struct {
 func (s *Server) Run(la config.Address) error {
 	srv := &http.Server{
 		Addr:         la.String(),
-		Handler:      s.URLRouter(), // ваш обработчик запросов
+		Handler:      s.URLRouter(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
