@@ -5,15 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/config"
-	"github.com/Taboon/urlshortner/internal/entity"
-	"github.com/pressly/goose"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/entity"
 	pgx "github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib" // postgres driver
+	"github.com/pressly/goose"
 	"go.uber.org/zap"
 )
 
@@ -23,8 +23,6 @@ type Postgre struct {
 }
 
 var _ Repository = (*Postgre)(nil)
-
-const dirMigrations = "internal/db/migrations"
 
 func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
 	return &Postgre{
@@ -49,7 +47,7 @@ func Migrations(dsn string) error {
 		return err
 	}
 
-	return goose.Up(db, dirMigrations)
+	return goose.Up(db, "./")
 }
 
 func (p *Postgre) Ping() error {

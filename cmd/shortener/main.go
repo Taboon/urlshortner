@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
@@ -9,7 +11,6 @@ import (
 	"github.com/Taboon/urlshortner/internal/storage"
 	pgx "github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
-	"log"
 )
 
 func main() { //nolint:funlen
