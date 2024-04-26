@@ -19,5 +19,9 @@ type Repository interface {
 	RemoveURL(ctx context.Context, data URLData) error
 	// Ping проверяет соединение с БД
 	// Возвращает 200 или 500
-	Ping() error
+	Ping(ctx context.Context) error
+	// GetNewUser возвращает id для нового пользователя
+	GetNewUser(ctx context.Context) (int, error)
+	// GetURLByUser возвращает структуру содержащую список всех url пользователя
+	GetURLsByUser(ctx context.Context, id int) (UserURLs, error)
 }

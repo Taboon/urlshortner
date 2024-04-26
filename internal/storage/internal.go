@@ -17,6 +17,16 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
+func (sm *SafeMap) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (sm *SafeMap) GetNewUser(ctx context.Context) (int, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (sm *SafeMap) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	urlData := URLData{}
 	for i, v := range *b {
@@ -54,7 +64,7 @@ func NewMemoryStorage(logger *zap.Logger) *SafeMap {
 	}
 }
 
-func (sm *SafeMap) Ping() error {
+func (sm *SafeMap) Ping(ctx context.Context) error {
 	return nil
 }
 

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
@@ -25,12 +24,12 @@ func NewAuthentificator(l *zap.Logger, r storage.Repository) Autentificator {
 	}
 }
 
-func (a *Autentificator) readToken(token string) int {
+func (a *Autentificator) readToken(ctx context.Context, token string) int {
 	token = strings.TrimPrefix(token, SCHEME)
-	return a.getUserID(token)
+	return a.getUserID(ctx, token)
 }
 
-func (a *Autentificator) getUserID(token string) int {
+func (a *Autentificator) getUserID(ctx context.Context, token string) int {
 	a.Log.Debug("Получаем из токена userID")
 	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}
@@ -48,21 +47,21 @@ func (a *Autentificator) setContext(ctx context.Context, id int) context.Context
 	return context.WithValue(ctx, "id", id)
 }
 
-func (a *Autentificator) setCookies(w http.ResponseWriter) http.ResponseWriter {
-	cookie, err := a.signCookies()
+func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) (http.ResponseWriter, int) {
+	cookie, id, err := a.signCookies(ctx)
 	if err != nil {
 		a.Log.Error("Ошибка установки куков", zap.Error(err))
-		return w
+		return w, 0
 	}
 	http.SetCookie(w, cookie)
-	return w
+	return w, id
 }
 
-func (a *Autentificator) signCookies() (*http.Cookie, error) {
+func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, error) {
 
-	token, err := a.buildJWTString()
+	token, id, err := a.buildJWTString(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	a.Log.Debug("Подписываем куки", zap.String("token", token))
 	cookie := http.Cookie{
@@ -72,14 +71,14 @@ func (a *Autentificator) signCookies() (*http.Cookie, error) {
 		HttpOnly: true,
 		SameSite: 1,
 	}
-	return &cookie, err
+	return &cookie, id, err
 }
 
-func (a *Autentificator) buildJWTString() (string, error) {
+func (a *Autentificator) buildJWTString(ctx context.Context) (string, int, error) {
 	a.Log.Debug("Получаем закодированный токен")
-	id, err := a.getNewUserID()
+	id, err := a.getNewUserID(ctx)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
@@ -94,21 +93,14 @@ func (a *Autentificator) buildJWTString() (string, error) {
 	// создаём строку токена
 	tokenString, err := token.SignedString([]byte(SECRET_KEY))
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
 	// возвращаем строку токена
-	return tokenString, nil
+	return tokenString, id, nil
 }
 
-func (a *Autentificator) getNewUserID() (int, error) {
-	c := 100
-	b := make([]byte, c)
-	id, err := rand.Read(b)
-	if err != nil {
-		fmt.Println("error:", err)
-		return 0, err
-	}
-	a.Log.Debug("Получаем новый userID", zap.Int("id", id))
-	return id, nil
+func (a *Autentificator) getNewUserID(ctx context.Context) (int, error) {
+
+	return a.R.GetNewUser(ctx)
 }

@@ -10,16 +10,22 @@ func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc 
 	var id int
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("Authorization")
+		ctx := r.Context()
 		if err != nil {
-			w = a.setCookies(w)
+			w, id = a.setCookies(ctx, w)
 			a.Log.Debug("Устанавливаем куки")
-
+		} else {
+			a.Log.Debug("Достаем ID из куки")
+			id = a.readToken(ctx, cookie.Value)
+			if id == 0 {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 		}
 
-		id = a.readToken(cookie.Value)
 		a.Log.Debug("Устанавливаем в контекст", zap.Int("id", id))
-
 		r = r.WithContext(a.setContext(r.Context(), id))
+
 		h.ServeHTTP(w, r)
 	}
 	return auth

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -41,8 +42,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
-	err := s.P.Ping()
+func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
+	err := s.P.Repo.Ping(r.Context())
 	if err != nil {
 		http.Error(w, "Ошибка при подключении к базе данных", http.StatusInternalServerError)
 	}
@@ -227,4 +228,31 @@ func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchU
 		return nil, err
 	}
 	return &reqBatchJSON, nil
+}
+
+func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
+	id := r.Context().Value("id").(int)
+	urls, err := s.P.Repo.GetURLsByUser(r.Context(), id)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, "Нет доступных URL: "+err.Error(), http.StatusNoContent)
+			return
+		}
+		http.Error(w, "Не удалось получить все URL пользователя: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(urls) > 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		s.writeResponse(w, s.setBaseURL(&urls))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) setBaseURL(ls *storage.UserURLs) *storage.UserURLs {
+	for i, v := range *ls {
+		(*ls)[i].ID = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, v.ID)
+	}
+	return ls
 }

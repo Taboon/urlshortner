@@ -50,11 +50,11 @@ func Migrations(dsn string) error {
 	return goose.Up(db, "./")
 }
 
-func (p *Postgre) Ping() error {
+func (p *Postgre) Ping(ctx context.Context) error {
 	p.Log.Debug("Проверяем статус соединения с БД")
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	c, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	if err := p.db.Ping(ctx); err != nil {
+	if err := p.db.Ping(c); err != nil {
 		p.Log.Error("Ошибка соединения с БД")
 		return err
 	}
@@ -67,7 +67,10 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	id := ctx.Value("id")
 	p.Log.Debug("Id из контекста", zap.Any("id", id))
 
-	_, err := p.db.Query(ctx, "AddURL", data.ID, data.URL)
+	c, cancel := context.WithTimeout(ctx, time.Second*1)
+	defer cancel()
+
+	_, err := p.db.Query(c, "AddURL", data.ID, data.URL, id)
 	if err != nil {
 		return err
 	}
@@ -79,6 +82,8 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 	if err != nil {
 		return nil, err
 	}
+	id := ctx.Value("id")
+	p.Log.Debug("Id из контекста", zap.Any("id", id))
 
 	for _, v := range *b {
 		// если данные не валидны, пропускаем текущую итерацию
@@ -88,7 +93,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL)
+		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL, id)
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
 				return nil, err
@@ -114,8 +119,11 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 	var i string
 	var u string
 
+	c, cancel := context.WithTimeout(ctx, time.Second*1)
+	defer cancel()
+
 	insertType := fmt.Sprintf("SELECT id, url FROM urls WHERE %v = $1", t)
-	err := p.db.QueryRow(ctx, insertType, v).Scan(&i, &u)
+	err := p.db.QueryRow(c, insertType, v).Scan(&i, &u)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			p.Log.Debug("Не нашли запись в базе данных")
@@ -131,12 +139,15 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 }
 
 func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
+	c, cancel := context.WithTimeout(ctx, time.Second*1)
+	defer cancel()
+
 	// получаем данные для составления запроса
-	val, queryInsert := p.getQueryInsert(urls)
+	val, queryInsert := p.getQueryInsert(ctx, urls)
 
 	// Проверка существования урлов в базе данных
 	query := "SELECT url, id FROM urls WHERE url IN (" + queryInsert + ")"
-	rows, err := p.db.Query(ctx, query, val...)
+	rows, err := p.db.Query(c, query, val...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
 		return nil, err
@@ -161,7 +172,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	return urls, nil
 }
 
-func (p *Postgre) getQueryInsert(urls *ReqBatchURLs) ([]interface{}, string) {
+func (p *Postgre) getQueryInsert(ctx context.Context, urls *ReqBatchURLs) ([]interface{}, string) {
 	val := make([]interface{}, 0, len(*urls))
 	var queryInsert string
 	i := 0
@@ -184,8 +195,49 @@ func (p *Postgre) RemoveURL(_ context.Context, _ URLData) error {
 	panic("implement me4")
 }
 
+func (p *Postgre) GetNewUser(ctx context.Context) (int, error) {
+	c, cancel := context.WithTimeout(ctx, time.Second*1)
+	defer cancel()
+
+	p.Log.Debug("Добавляем пользователя в базу и получаем ID")
+	var id int
+	err := p.db.QueryRow(c, "GetNewUser").Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
+	c, cancel := context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
+
+	p.Log.Debug("Получаем все URL пользователя", zap.Int("id", id))
+
+	urls := UserURLs{}
+	rows, err := p.db.Query(c, "SELECT url, id FROM urls WHERE userID = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var url string
+		var shortID string
+		err := rows.Scan(&url, &shortID)
+		if err != nil {
+			p.Log.Error("Error scanning row:", zap.Error(err))
+			return nil, err
+		}
+		urls = append(urls, URLData{
+			URL: url,
+			ID:  shortID,
+		})
+	}
+	return urls, nil
+}
+
 func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
-	db, err := pgx.Connect(context.Background(), conf.DataBase)
+	ctx := context.Background()
+	db, err := pgx.Connect(ctx, conf.DataBase)
 
 	if err != nil {
 		fprintf, err := fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
@@ -196,7 +248,7 @@ func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
 	}
 
 	stor := NewPostgreBase(db, l)
-	err = stor.Ping()
+	err = stor.Ping(ctx)
 	if err != nil {
 		fprintf, err := fmt.Fprintf(os.Stderr, "Can't connect to database: %v\n", err)
 		if err != nil {
@@ -221,11 +273,18 @@ func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
 }
 
 func setPrepare(db *pgx.Conn) {
-	_, err := db.Prepare(context.Background(), "AddURL", "INSERT INTO urls (id, url) VALUES ($1, $2)")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	defer cancel()
+
+	_, err := db.Prepare(ctx, "GetURLSByUser", `SELECT url, id FROM urls WHERE userID = $1`)
 	if err != nil {
 		panic(err)
 	}
-	_, err = db.Prepare(context.Background(), "AddURL", "INSERT INTO urls (id, url) VALUES ($1, $2)")
+	_, err = db.Prepare(ctx, "AddURL", `INSERT INTO urls (id, url, userID) VALUES ($1, $2, $3)`)
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.Prepare(ctx, "GetNewUser", `INSERT INTO users DEFAULT VALUES RETURNING id`)
 	if err != nil {
 		panic(err)
 	}

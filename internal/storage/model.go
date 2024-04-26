@@ -20,3 +20,5 @@ type RespBatchURL struct {
 	ID  string `json:"correlation_id"`
 	URL string `json:"short_url"`
 }
+
+type UserURLs []URLData

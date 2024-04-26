@@ -29,7 +29,7 @@ type configBuilder struct {
 	config *Config
 }
 
-const baseFilePath = "/tmp/short-url-db.json"
+const baseFilePath = "./tmp/short-url-db.json"
 
 func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
