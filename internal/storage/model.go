@@ -22,3 +22,4 @@ type RespBatchURL struct {
 }
 
 type UserURLs []URLData
+
