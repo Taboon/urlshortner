@@ -43,9 +43,9 @@ func (s *Server) URLRouter() chi.Router {
 
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
 	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
-	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortURL)))
+	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortURL))))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenJSON)))
 	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenBatchJSON)))
-
+	r.Post("/api/user/urls", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortURL))))
 	return r
 }

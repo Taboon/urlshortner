@@ -64,7 +64,10 @@ func (p *Postgre) Ping() error {
 
 func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
-	_, err := p.db.Exec(ctx, "INSERT INTO urls (id, url) VALUES ($1, $2)", data.ID, data.URL)
+	id := ctx.Value("id")
+	p.Log.Debug("Id из контекста", zap.Any("id", id))
+
+	_, err := p.db.Query(ctx, "AddURL", data.ID, data.URL)
 	if err != nil {
 		return err
 	}
@@ -85,7 +88,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, "INSERT INTO urls (id, url) VALUES ($1, $2)", v.ID, v.URL)
+		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL)
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
 				return nil, err
@@ -211,6 +214,19 @@ func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
 		panic(fprintf)
 	}
 
+	setPrepare(db)
+
 	l.Info("Использем Postge")
 	return db, stor
+}
+
+func setPrepare(db *pgx.Conn) {
+	_, err := db.Prepare(context.Background(), "AddURL", "INSERT INTO urls (id, url) VALUES ($1, $2)")
+	if err != nil {
+		panic(err)
+	}
+	_, err = db.Prepare(context.Background(), "AddURL", "INSERT INTO urls (id, url) VALUES ($1, $2)")
+	if err != nil {
+		panic(err)
+	}
 }

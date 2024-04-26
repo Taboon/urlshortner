@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/Taboon/urlshortner/internal/server/auth"
 	"log"
 
 	"github.com/Taboon/urlshortner/internal/config"
@@ -42,8 +43,9 @@ func main() { //nolint:funlen
 
 	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
+		Repo:            stor,
+		Log:             l,
+		Authentificator: auth.NewAuthentificator(l, stor),
 	}
 
 	// инициализируем бекап и загружаем из него данные
