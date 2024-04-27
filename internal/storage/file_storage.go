@@ -16,13 +16,13 @@ type FileStorage struct {
 	Log      *zap.Logger
 }
 
-func (f *FileStorage) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
-	//TODO implement me
+func (f *FileStorage) GetURLsByUser(_ context.Context, _ int) (UserURLs, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (f *FileStorage) GetNewUser(ctx context.Context) (int, error) {
-	//TODO implement me
+func (f *FileStorage) GetNewUser(_ context.Context) (int, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -66,7 +66,7 @@ func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
 	}
 }
 
-func (f *FileStorage) Ping(ctx context.Context) error {
+func (f *FileStorage) Ping(_ context.Context) error {
 	return nil
 }
 

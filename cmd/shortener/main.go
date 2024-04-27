@@ -16,7 +16,7 @@ import (
 
 func main() { //nolint:funlen
 	conf := config.SetConfig()
-
+	ctx := context.Background()
 	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
 	if err != nil {
@@ -28,7 +28,7 @@ func main() { //nolint:funlen
 
 	switch {
 	case conf.DataBase != "":
-		db, s := storage.SetPostgres(conf, l)
+		db, s := storage.SetPostgres(ctx, conf, l)
 		stor = s
 		defer func(db *pgx.Conn, ctx context.Context) {
 			err := db.Close(ctx)

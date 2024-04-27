@@ -17,13 +17,13 @@ type SafeMap struct {
 	Log            *zap.Logger
 }
 
-func (sm *SafeMap) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
-	//TODO implement me
+func (sm *SafeMap) GetURLsByUser(_ context.Context, _ int) (UserURLs, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
-func (sm *SafeMap) GetNewUser(ctx context.Context) (int, error) {
-	//TODO implement me
+func (sm *SafeMap) GetNewUser(_ context.Context) (int, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -64,7 +64,7 @@ func NewMemoryStorage(logger *zap.Logger) *SafeMap {
 	}
 }
 
-func (sm *SafeMap) Ping(ctx context.Context) error {
+func (sm *SafeMap) Ping(_ context.Context) error {
 	return nil
 }
 

@@ -173,7 +173,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	return urls, nil
 }
 
-func (p *Postgre) getQueryInsert(ctx context.Context, urls *ReqBatchURLs) ([]interface{}, string) {
+func (p *Postgre) getQueryInsert(_ context.Context, urls *ReqBatchURLs) ([]interface{}, string) {
 	val := make([]interface{}, 0, len(*urls))
 	var queryInsert string
 	i := 0
@@ -236,8 +236,7 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 	return urls, nil
 }
 
-func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
-	ctx := context.Background()
+func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
 	db, err := pgx.Connect(ctx, conf.DataBase)
 
 	if err != nil {
@@ -269,7 +268,6 @@ func SetPostgres(conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
 
 	setPrepare(db)
 
-	l.Info("Использем Postge")
 	return db, stor
 }
 

@@ -29,14 +29,18 @@ func (a *Autentificator) readToken(ctx context.Context, token string) int {
 	return a.getUserID(ctx, token)
 }
 
-func (a *Autentificator) getUserID(ctx context.Context, token string) int {
+func (a *Autentificator) getUserID(_ context.Context, token string) int {
 	a.Log.Debug("Получаем из токена userID")
 	// создаём экземпляр структуры с утверждениями
 	claims := &Claims{}
 	// парсим из строки токена tokenString в структуру claims
-	jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
+	_, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
 		return []byte(SECRET_KEY), nil
 	})
+	if err != nil {
+		a.Log.Error("Ошибка парсинга ID", zap.Error(err))
+		return 0
+	}
 
 	// возвращаем ID пользователя в читаемом виде
 	return claims.UserID
@@ -44,7 +48,7 @@ func (a *Autentificator) getUserID(ctx context.Context, token string) int {
 
 func (a *Autentificator) setContext(ctx context.Context, id int) context.Context {
 	a.Log.Debug("Устанавливаем контекст")
-	return context.WithValue(ctx, "id", id)
+	return context.WithValue(ctx, "id", id) //nolint: revive, staticcheck
 }
 
 func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) (http.ResponseWriter, int) {
@@ -58,7 +62,6 @@ func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) 
 }
 
 func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, error) {
-
 	token, id, err := a.buildJWTString(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -101,6 +104,5 @@ func (a *Autentificator) buildJWTString(ctx context.Context) (string, int, error
 }
 
 func (a *Autentificator) getNewUserID(ctx context.Context) (int, error) {
-
 	return a.R.GetNewUser(ctx)
 }
