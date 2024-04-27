@@ -25,7 +25,7 @@ func NewAuthentificator(l *zap.Logger, r storage.Repository) Autentificator {
 }
 
 func (a *Autentificator) readToken(ctx context.Context, token string) int {
-	token = strings.TrimPrefix(token, SCHEME)
+	token = strings.TrimPrefix(token, Scheme)
 	return a.getUserID(ctx, token)
 }
 
@@ -35,7 +35,7 @@ func (a *Autentificator) getUserID(_ context.Context, token string) int {
 	claims := &Claims{}
 	// парсим из строки токена tokenString в структуру claims
 	_, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-		return []byte(SECRET_KEY), nil
+		return []byte(SecretKey), nil
 	})
 	if err != nil {
 		a.Log.Error("Ошибка парсинга ID", zap.Error(err))
@@ -48,7 +48,7 @@ func (a *Autentificator) getUserID(_ context.Context, token string) int {
 
 func (a *Autentificator) setContext(ctx context.Context, id int) context.Context {
 	a.Log.Debug("Устанавливаем контекст")
-	return context.WithValue(ctx, "id", id) //nolint: revive, staticcheck
+	return context.WithValue(ctx, UserID, id) //nolint: revive, staticcheck
 }
 
 func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) (http.ResponseWriter, int) {
@@ -69,7 +69,7 @@ func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, er
 	a.Log.Debug("Подписываем куки", zap.String("token", token))
 	cookie := http.Cookie{
 		Name:     "Authorization",
-		Value:    fmt.Sprintf("%v%v", SCHEME, token),
+		Value:    fmt.Sprintf("%v%v", Scheme, token),
 		Secure:   false,
 		HttpOnly: true,
 		SameSite: 1,
@@ -87,14 +87,14 @@ func (a *Autentificator) buildJWTString(ctx context.Context) (string, int, error
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			// когда создан токен
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 		},
 		// собственное утверждение
 		UserID: id,
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(SecretKey))
 	if err != nil {
 		return "", 0, err
 	}
