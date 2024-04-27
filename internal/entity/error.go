@@ -6,6 +6,7 @@ var ErrHasNoPrefix = errors.New("has no prefix http:// or https://")
 var ErrHasNoDot = errors.New("has no dot in url")
 
 var ErrURLExist = errors.New("url already exist")
+var ErrUnknownUser = errors.New("unknown user")
 
 var ErrUnknownID = errors.New("unknown ID")
 var ErrEmptyFlag = errors.New("empty flag")

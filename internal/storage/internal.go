@@ -2,37 +2,46 @@ package storage
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"go.uber.org/zap"
 	"sync"
 
 	"github.com/Taboon/urlshortner/internal/entity"
 )
 
-type SafeMap struct {
-	mu             sync.Mutex
-	mapStor        map[string]string
-	reverseMapStor map[string]string
-	Log            *zap.Logger
+type InternalStorage struct {
+	Users map[int]UserURLs
+	Log   *zap.Logger
+	mu    sync.Mutex
 }
 
-func (sm *SafeMap) GetURLsByUser(_ context.Context, _ int) (UserURLs, error) {
-	// TODO implement me
-	panic("implement me")
+var _ Repository = (*InternalStorage)(nil)
+
+func NewMemoryStorage(logger *zap.Logger) *InternalStorage {
+	return &InternalStorage{
+		Users: make(map[int]UserURLs),
+		Log:   logger,
+		mu:    sync.Mutex{},
+	}
 }
 
-func (sm *SafeMap) GetNewUser(_ context.Context) (int, error) {
-	// TODO implement me
-	panic("implement me")
+func (is *InternalStorage) Ping(_ context.Context) error {
+	return nil
 }
 
-func (sm *SafeMap) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
+func (is *InternalStorage) GetURLsByUser(_ context.Context, id int) (UserURLs, error) {
+	return is.Users[id], nil
+}
+
+func (is *InternalStorage) GetNewUser(_ context.Context) (int, error) {
+	return len(is.Users), nil
+}
+
+func (is *InternalStorage) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
 	urlData := URLData{}
 	for i, v := range *b {
 		urlData.ID = v.ID
 		urlData.URL = v.URL
-		err := sm.AddURL(ctx, urlData)
+		err := is.AddURL(ctx, urlData)
 		if err != nil {
 			(*b)[i].Err = entity.ErrURLExist
 		}
@@ -40,9 +49,9 @@ func (sm *SafeMap) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatc
 	return b, nil
 }
 
-func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
+func (is *InternalStorage) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
 	for i, v := range *urls {
-		_, ok, err := sm.CheckURL(ctx, v.URL)
+		_, ok, err := is.CheckURL(ctx, v.URL)
 		if err != nil {
 			return nil, err
 		}
@@ -53,99 +62,53 @@ func (sm *SafeMap) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqB
 	return urls, nil
 }
 
-var _ Repository = (*SafeMap)(nil)
+func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
+	is.Log.Debug("Сохраняем URL")
+	is.mu.Lock()
+	defer is.mu.Unlock()
 
-func NewMemoryStorage(logger *zap.Logger) *SafeMap {
-	return &SafeMap{
-		mu:             sync.Mutex{},
-		mapStor:        make(map[string]string),
-		reverseMapStor: make(map[string]string),
-		Log:            logger,
+	id := ctx.Value(UserID).(int)
+
+	_, ok := is.Users[id]
+	if ok {
+		is.Users[id] = append(is.Users[id], data)
 	}
-}
-
-func (sm *SafeMap) Ping(_ context.Context) error {
+	is.Users[id] = append(UserURLs{}, data)
 	return nil
 }
 
-func (sm *SafeMap) AddURL(_ context.Context, data URLData) error {
-	sm.Log.Debug("Сохраняем URL")
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
+func (is *InternalStorage) CheckID(ctx context.Context, id string) (URLData, bool, error) {
+	is.Log.Debug("Проверяем ID")
+	userid := ctx.Value(UserID).(int)
 
-	// Проверяем, что map был инициализирован
-	sm.mapChecker()
-	fmt.Println(data.URL)
-	// Проверяем наличие данных в массиве
-	fmt.Println(sm.mapStor)
-	_, ok := sm.mapStor[data.ID]
+	user, ok := is.Users[userid]
 	if ok {
-		err := errors.New("id exist")
-		return err
-	}
-	fmt.Println(sm.reverseMapStor)
-	_, ok = sm.reverseMapStor[data.URL]
-	if ok {
-		err := errors.New("url exist")
-		return err
-	}
-	// Пишем данные в map
-	sm.mapStor[data.ID] = data.URL
-	sm.reverseMapStor[data.URL] = data.ID
-	return nil
-}
-
-func (sm *SafeMap) CheckID(_ context.Context, id string) (URLData, bool, error) {
-	sm.Log.Debug("Проверяем ID")
-	urlData := URLData{}
-	val, ok := sm.mapStor[id]
-	if ok {
-		urlData.ID = id
-		urlData.URL = val
-		return urlData, true, nil
-	}
-	return urlData, false, nil
-}
-
-func (sm *SafeMap) CheckURL(_ context.Context, url string) (URLData, bool, error) {
-	sm.Log.Debug("Проверяем URL", zap.String("url", url))
-	urlData := URLData{}
-	val, ok := sm.reverseMapStor[url]
-	if ok {
-		urlData.ID = val
-		urlData.URL = url
-		return urlData, true, nil
-	}
-	return urlData, false, nil
-}
-
-func (sm *SafeMap) RemoveURL(_ context.Context, data URLData) error {
-	sm.Log.Debug("Удаляем URL")
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	// Проверяем, что map был инициализирован
-	sm.mapChecker()
-
-	// Удаляем данные из map
-	_, ok := sm.mapStor[data.ID]
-	if ok {
-		_, ok := sm.reverseMapStor[data.URL]
-		if ok {
-			delete(sm.mapStor, data.ID)
-			delete(sm.reverseMapStor, sm.mapStor[data.URL])
-			return nil
+		for _, v := range user {
+			if v.ID == id {
+				return v, true, nil
+			}
 		}
+		return URLData{}, false, nil
 	}
-	err := errors.New("removing entity")
-	return err
+	return URLData{}, false, entity.ErrUnknownUser
 }
 
-func (sm *SafeMap) mapChecker() {
-	if sm.mapStor == nil {
-		sm.mapStor = make(map[string]string)
+func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
+	is.Log.Debug("Проверяем URL", zap.String("url", url))
+	userid := ctx.Value(UserID).(int)
+
+	user, ok := is.Users[userid]
+	if ok {
+		for _, v := range user {
+			if v.URL == url {
+				return v, true, nil
+			}
+		}
+		return URLData{}, false, nil
 	}
-	if sm.reverseMapStor == nil {
-		sm.reverseMapStor = make(map[string]string)
-	}
+	return URLData{}, false, entity.ErrUnknownUser
+}
+
+func (is *InternalStorage) RemoveURL(_ context.Context, data URLData) error {
+	return nil
 }
