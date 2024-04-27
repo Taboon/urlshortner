@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/server/auth"
 	"os"
 	"strings"
 	"time"
@@ -65,7 +64,7 @@ func (p *Postgre) Ping(ctx context.Context) error {
 
 func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
-	id := ctx.Value(auth.UserID)
+	id := ctx.Value(UserID)
 	p.Log.Debug("Id из контекста", zap.Any("id", id))
 
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
@@ -83,7 +82,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 	if err != nil {
 		return nil, err
 	}
-	id := ctx.Value(auth.UserID)
+	id := ctx.Value(UserID)
 	p.Log.Debug("Id из контекста", zap.Any("id", id))
 
 	for _, v := range *b {

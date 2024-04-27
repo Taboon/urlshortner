@@ -48,7 +48,7 @@ func (a *Autentificator) getUserID(_ context.Context, token string) int {
 
 func (a *Autentificator) setContext(ctx context.Context, id int) context.Context {
 	a.Log.Debug("Устанавливаем контекст")
-	return context.WithValue(ctx, UserID, id) //nolint: revive, staticcheck
+	return context.WithValue(ctx, storage.UserID, id) //nolint: revive, staticcheck
 }
 
 func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) (http.ResponseWriter, int) {

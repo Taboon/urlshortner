@@ -10,10 +10,6 @@ type Claims struct {
 	UserID               int
 }
 
-type CustomKeyContext string
-
-const UserID CustomKeyContext = "id"
-
 const TokenExp = time.Hour * 3
 
 // SecretKey пока что в коде, т.к. по заданию не понятно где должен храниться он.

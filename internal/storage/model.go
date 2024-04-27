@@ -23,3 +23,6 @@ type RespBatchURL struct {
 
 type UserURLs []URLData
 
+type CustomKeyContext string
+
+const UserID CustomKeyContext = "id"
