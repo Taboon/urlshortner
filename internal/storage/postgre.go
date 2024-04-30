@@ -71,10 +71,10 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	defer cancel()
 
 	rows, err := p.db.Query(c, "AddURL", data.ID, data.URL, id)
-	defer rows.Close()
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 	return nil
 }
 
@@ -218,10 +218,10 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 
 	urls := UserURLs{}
 	rows, err := p.db.Query(c, "SELECT url, id FROM urls WHERE userID = $1", id)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var url string
 		var shortID string
