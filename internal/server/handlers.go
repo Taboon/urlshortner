@@ -233,7 +233,7 @@ func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchU
 }
 
 func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
-	id := r.Context().Value("id").(int)
+	id := r.Context().Value(storage.UserID).(int)
 	urls, err := s.P.Repo.GetURLsByUser(r.Context(), id)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
