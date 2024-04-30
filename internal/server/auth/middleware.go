@@ -5,12 +5,12 @@ import (
 	"net/http"
 )
 
-func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc {
+func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc { //nolint:funlen
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		var id int
 		ctx := r.Context()
 
-		header := r.Header.Get("Autorization")
+		header := r.Header.Get("Authorization")
 		if header != "" {
 			a.Log.Debug("Достаем ID из хеадера")
 			id = a.readToken(ctx, header)
