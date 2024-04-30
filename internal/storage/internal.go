@@ -91,7 +91,7 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 	return nil
 }
 
-func (is *InternalStorage) CheckID(ctx context.Context, id string) (URLData, bool, error) {
+func (is *InternalStorage) CheckID(_ context.Context, id string) (URLData, bool, error) {
 	is.Log.Debug("Проверяем ID")
 
 	for _, u := range is.Users {
