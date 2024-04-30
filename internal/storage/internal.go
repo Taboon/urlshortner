@@ -79,11 +79,14 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 
 	if is.Backuper != nil {
 		is.Log.Debug("Пишем в файл бекапа")
-		is.Backuper.Set(UrlInFile{
-			Id:     data.ID,
-			Url:    data.URL,
+		err := is.Backuper.Set(URLInFile{
+			ID:     data.ID,
+			URL:    data.URL,
 			UserID: id,
 		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -118,6 +121,6 @@ func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, b
 	return URLData{}, false, nil
 }
 
-func (is *InternalStorage) RemoveURL(_ context.Context, data URLData) error {
+func (is *InternalStorage) RemoveURL(_ context.Context, _ URLData) error {
 	return nil
 }

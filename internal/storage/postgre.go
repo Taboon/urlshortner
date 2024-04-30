@@ -65,7 +65,7 @@ func (p *Postgre) Ping(ctx context.Context) error {
 func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
 	id := ctx.Value(UserID)
-	p.Log.Debug("Id из контекста", zap.Any("id", id))
+	p.Log.Debug("ID из контекста", zap.Any("id", id))
 
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
@@ -83,7 +83,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 		return nil, err
 	}
 	id := ctx.Value(UserID)
-	p.Log.Debug("Id из контекста", zap.Any("id", id))
+	p.Log.Debug("ID из контекста", zap.Any("id", id))
 
 	for _, v := range *b {
 		// если данные не валидны, пропускаем текущую итерацию

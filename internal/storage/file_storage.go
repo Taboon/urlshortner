@@ -15,9 +15,9 @@ type FileStorage struct {
 	Log      *zap.Logger
 }
 
-type UrlInFile struct {
-	Id     string `json:"id"`
-	Url    string `json:"url"`
+type URLInFile struct {
+	ID     string `json:"id"`
+	URL    string `json:"url"`
 	UserID int    `json:"user_id"`
 }
 
@@ -33,7 +33,7 @@ func NewFileStorage(fileName string, logger *zap.Logger) *FileStorage {
 	}
 }
 
-func (f *FileStorage) Set(url UrlInFile) error {
+func (f *FileStorage) Set(url URLInFile) error {
 	file, err := os.OpenFile(f.fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (f *FileStorage) Get(repository *InternalStorage) error {
 		return entity.ErrRepositoryNotInitialized
 	}
 
-	var data = UrlInFile{}
+	var data = URLInFile{}
 	file, err := os.OpenFile(f.fileName, os.O_RDONLY|os.O_CREATE, 0774)
 	defer func() {
 		err := file.Close()
@@ -76,7 +76,7 @@ func (f *FileStorage) Get(repository *InternalStorage) error {
 				return err
 			}
 		}
-		(*repository).Users[data.UserID] = append(UserURLs{}, URLData{ID: data.Id, URL: data.Url})
+		repository.Users[data.UserID] = append(UserURLs{}, URLData{ID: data.ID, URL: data.URL})
 	}
 
 	return nil
