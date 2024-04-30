@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"go.uber.org/zap"
 	"net/http"
 )
@@ -10,6 +11,7 @@ func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc 
 		var id int
 		ctx := r.Context()
 		cookie, err := r.Cookie("Authorization")
+		fmt.Println(r.Cookies())
 		if err != nil {
 			w, id = a.setCookies(ctx, w)
 			a.Log.Debug("Устанавливаем куки")
