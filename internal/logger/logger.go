@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/Taboon/urlshortner/internal/config"
 	"go.uber.org/zap"
 	"net/http"
@@ -78,6 +79,7 @@ func (l *Logger) RequestLogger(h http.HandlerFunc) http.HandlerFunc {
 			zap.String("response status", strconv.Itoa(responseData.status)),
 			zap.String("response size", strconv.Itoa(responseData.size)),
 		)
+		fmt.Println(r)
 	}
 	return logFn
 }
