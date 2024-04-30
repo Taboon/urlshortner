@@ -33,8 +33,6 @@ func (u *URLProcessor) URLValidator(url string) (string, error) {
 }
 
 func (u *URLProcessor) SaveURL(ctx context.Context, url string) (string, error) {
-	u.Log.Debug("Сохраняем URL")
-
 	data, ok, err := u.Repo.CheckURL(ctx, url)
 	if err != nil {
 		return "", err
