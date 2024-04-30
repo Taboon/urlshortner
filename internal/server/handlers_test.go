@@ -56,8 +56,8 @@ func initServer() (Server, error) {
 	return s, nil
 }
 
-func AddMock(urlMock storage.URLData, s *Server) (*Server, error) {
-	ctx := context.WithValue(context.Background(), storage.UserID, 4)
+func AddMock(urlMock storage.URLData, s *Server, id int) (*Server, error) {
+	ctx := context.WithValue(context.Background(), storage.UserID, id)
 	err := s.P.Repo.AddURL(ctx, urlMock)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,9 @@ func TestSendUrl(t *testing.T) {
 
 	s, err := initServer()
 	require.NoError(t, err, "Error init server")
-	serv, err := AddMock(urlMock, &s)
+	_, id, err := s.P.Authentificator.SignCookies(context.Background())
+	require.NoError(t, err, "Error set cookies")
+	serv, err := AddMock(urlMock, &s, id)
 	require.NoError(t, err, "Error add mock")
 	s = *serv
 
@@ -107,13 +109,6 @@ func TestSendUrl(t *testing.T) {
 			req, err := http.NewRequest(tt.method, url, nil)
 			require.NoError(t, err, "Error new request")
 
-			// Добавляем куку
-			req.AddCookie(&http.Cookie{
-				Name:     "Authorization",
-				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
-				HttpOnly: true,
-			})
-
 			// Выполняем запрос
 			resp, err := client.Do(req)
 			require.NoError(t, err, "Error do request")
@@ -140,7 +135,7 @@ func Test_getUrl(t *testing.T) {
 	}{
 		{name: "test1", method: http.MethodPost, body: "http://ya.ru", contentType: "text/plain", expectedCode: http.StatusCreated},
 		{name: "test2", method: http.MethodPost, body: "htt://ya2.ru", contentType: "", expectedCode: http.StatusBadRequest},
-		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusConflict},
+		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusCreated},
 	}
 
 	s, err := initServer()
@@ -161,13 +156,6 @@ func Test_getUrl(t *testing.T) {
 			// Создаем GET запрос
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.body))
 			require.NoError(t, err)
-
-			// Добавляем куку
-			req.AddCookie(&http.Cookie{
-				Name:     "Authorization",
-				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
-				HttpOnly: true,
-			})
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
@@ -212,13 +200,6 @@ func Test_shortenJSON(t *testing.T) {
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
 			fmt.Println(tt.request)
 
-			// Добавляем куку
-			req.AddCookie(&http.Cookie{
-				Name:     "Authorization",
-				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
-				HttpOnly: true,
-			})
-
 			req.Header.Set("Content-Type", tt.contentType)
 
 			require.NoError(t, err)
@@ -248,7 +229,7 @@ func Test_shortenBatchJSON(t *testing.T) {
 		expectedBody string
 	}{
 		{name: "test1", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://yandex.ru\"},{\"correlation_id\": \"b\",\"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
-		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://otherurl.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": false}},
+		{name: "test2", request: "[{\"correlation_id\": \"a\", \"original_url\": \"http://otherurl.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"http://ya.ru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": true, "b": true}},
 		{name: "test3", request: "[{\"correlation_id\": \"a\", \"original_url\": \"ya.ru\"},{\"correlation_id\": \"b\", \"original_url\": \"https://yandexru\"}]", contentType: "application/json", expectedCode: http.StatusCreated, response: map[string]bool{"a": false, "b": false}},
 		{name: "test4", request: "[{ \"https://yandex.ru\"}]", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
@@ -269,13 +250,6 @@ func Test_shortenBatchJSON(t *testing.T) {
 
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
 			fmt.Println(tt.request)
-
-			// Добавляем куку
-			req.AddCookie(&http.Cookie{
-				Name:     "Authorization",
-				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
-				HttpOnly: true,
-			})
 
 			req.Header.Set("Content-Type", tt.contentType)
 

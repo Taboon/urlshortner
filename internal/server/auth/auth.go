@@ -55,7 +55,7 @@ func (a *Autentificator) setContext(ctx context.Context, id int) context.Context
 }
 
 func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) (http.ResponseWriter, int) {
-	cookie, id, err := a.signCookies(ctx)
+	cookie, id, err := a.SignCookies(ctx)
 	if err != nil {
 		a.Log.Error("Ошибка установки куков", zap.Error(err))
 		return w, 0
@@ -64,7 +64,7 @@ func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) 
 	return w, id
 }
 
-func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, error) {
+func (a *Autentificator) SignCookies(ctx context.Context) (*http.Cookie, int, error) {
 	token, id, err := a.buildJWTString(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -76,7 +76,7 @@ func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, er
 		Secure:   false,
 		HttpOnly: false,
 		MaxAge:   3600,
-		Domain:   a.BaseURL.String(),
+		//Domain:   a.BaseURL.IP,
 		SameSite: 1,
 	}
 	return &cookie, id, err
