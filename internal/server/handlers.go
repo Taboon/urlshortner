@@ -237,7 +237,7 @@ func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	urls, err := s.P.Repo.GetURLsByUser(r.Context(), id)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) { //nolint: typecheck
-			http.Error(w, "Нет доступных URL: "+err.Error(), http.StatusNoContent)
+			http.Error(w, "Нет доступных URL: "+err.Error(), http.StatusUnauthorized)
 			return
 		}
 		http.Error(w, "Не удалось получить все URL пользователя: "+err.Error(), http.StatusBadRequest)
@@ -250,7 +250,7 @@ func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
 		s.writeResponse(w, s.setBaseURL(&urls))
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 func (s *Server) setBaseURL(ls *storage.UserURLs) *storage.UserURLs {
