@@ -9,7 +9,6 @@ import (
 
 type URLProcessor struct {
 	Repo            storage.Repository
-	Backup          storage.Repository
 	Authentificator auth.Autentificator
 	Log             *zap.Logger
 }

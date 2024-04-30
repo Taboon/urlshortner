@@ -51,12 +51,6 @@ func (u *URLProcessor) SaveURL(ctx context.Context, url string) (string, error) 
 		return "", err
 	}
 
-	if u.Backup != nil {
-		if err := u.Backup.AddURL(ctx, urlObj); err != nil {
-			u.Log.Error("Ошибка сохранения бекапа")
-		}
-	}
-
 	return id, nil
 }
 
@@ -78,13 +72,6 @@ func (u *URLProcessor) BatchURLSave(ctx context.Context, b *storage.ReqBatchURLs
 	b, err = u.Repo.WriteBatchURL(ctx, b)
 	if err != nil {
 		return nil, err
-	}
-
-	if u.Backup != nil {
-		_, err = u.Backup.WriteBatchURL(ctx, b)
-		if err != nil {
-			u.Log.Error("Ошибка сохранения бекапа")
-		}
 	}
 
 	return b, nil

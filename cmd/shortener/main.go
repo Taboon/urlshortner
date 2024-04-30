@@ -37,8 +37,21 @@ func main() { //nolint:funlen
 			}
 		}(db, context.Background())
 	default:
-		stor = storage.NewMemoryStorage(l)
+		internalStor := storage.NewMemoryStorage(l)
+
 		l.Info("Используем память приложения для хранения")
+
+		// инициализируем бекап и загружаем из него данные
+		if conf.FileBase.File != "" {
+			l.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
+			backuper := storage.NewFileStorage(conf.FileBase.File, l)
+			err := backuper.Get(internalStor)
+			if err != nil {
+				panic(err)
+			}
+			internalStor.Backuper = backuper
+		}
+		stor = internalStor
 	}
 
 	// инициализируем URL процессор
@@ -46,17 +59,6 @@ func main() { //nolint:funlen
 		Repo:            stor,
 		Log:             l,
 		Authentificator: auth.NewAuthentificator(l, stor),
-	}
-
-	// инициализируем бекап и загружаем из него данные
-	if conf.FileBase.File != "" {
-		l.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
-		backuper := storage.NewFileStorage(conf.FileBase.File, l)
-		err := backuper.Get(&stor)
-		if err != nil {
-			panic(err)
-		}
-		urlProcessor.Backup = backuper
 	}
 
 	// инициализируем сервер

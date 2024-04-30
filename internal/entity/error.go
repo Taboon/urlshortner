@@ -13,3 +13,5 @@ var ErrEmptyFlag = errors.New("empty flag")
 
 var ErrNoURLToSave = errors.New("no have url to save")
 var ErrJSONInvalid = errors.New("invalid json")
+
+var ErrRepositoryNotInitialized = errors.New("repository not initialized")

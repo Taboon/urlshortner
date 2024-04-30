@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 	"sync"
 
@@ -9,9 +10,10 @@ import (
 )
 
 type InternalStorage struct {
-	Users map[int]UserURLs
-	Log   *zap.Logger
-	mu    sync.Mutex
+	Users    map[int]UserURLs
+	Log      *zap.Logger
+	mu       sync.Mutex
+	Backuper *FileStorage
 }
 
 var _ Repository = (*InternalStorage)(nil)
@@ -33,7 +35,7 @@ func (is *InternalStorage) GetURLsByUser(_ context.Context, id int) (UserURLs, e
 }
 
 func (is *InternalStorage) GetNewUser(_ context.Context) (int, error) {
-	return len(is.Users), nil
+	return len(is.Users) + 1, nil
 }
 
 func (is *InternalStorage) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatchURLs, error) {
@@ -74,6 +76,15 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 		is.Users[id] = append(is.Users[id], data)
 	}
 	is.Users[id] = append(UserURLs{}, data)
+
+	if is.Backuper != nil {
+		is.Log.Debug("Пишем в файл бекапа")
+		is.Backuper.Set(UrlInFile{
+			Id:     data.ID,
+			Url:    data.URL,
+			UserID: id,
+		})
+	}
 	return nil
 }
 
@@ -88,15 +99,14 @@ func (is *InternalStorage) CheckID(ctx context.Context, id string) (URLData, boo
 				return v, true, nil
 			}
 		}
-		return URLData{}, false, nil
 	}
-	return URLData{}, false, entity.ErrUnknownUser
+	return URLData{}, false, nil
 }
 
 func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	is.Log.Debug("Проверяем URL", zap.String("url", url))
 	userid := ctx.Value(UserID).(int)
-
+	fmt.Println(is.Users)
 	user, ok := is.Users[userid]
 	if ok {
 		for _, v := range user {
@@ -104,9 +114,8 @@ func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, b
 				return v, true, nil
 			}
 		}
-		return URLData{}, false, nil
 	}
-	return URLData{}, false, entity.ErrUnknownUser
+	return URLData{}, false, nil
 }
 
 func (is *InternalStorage) RemoveURL(_ context.Context, data URLData) error {
