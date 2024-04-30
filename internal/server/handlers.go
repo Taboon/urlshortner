@@ -246,6 +246,7 @@ func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	if len(urls) > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		fmt.Println(urls)
 		s.writeResponse(w, s.setBaseURL(&urls))
 		return
 	}
