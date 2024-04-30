@@ -80,7 +80,9 @@ func (a *Autentificator) SignCookies(ctx context.Context, w http.ResponseWriter)
 		//Domain:   a.BaseURL.String(),
 		SameSite: http.SameSiteNoneMode,
 	}
-	w.Header().Set("Autorization", fmt.Sprintf("%v%v", Scheme, token))
+	if w != nil {
+		w.Header().Set("Autorization", fmt.Sprintf("%v%v", Scheme, token))
+	}
 	return &cookie, id, err
 }
 

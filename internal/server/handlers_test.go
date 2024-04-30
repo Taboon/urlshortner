@@ -73,7 +73,7 @@ func TestSendUrl(t *testing.T) {
 
 	s, err := initServer()
 	require.NoError(t, err, "Error init server")
-	cookie, id, err := s.P.Authentificator.SignCookies(context.Background())
+	cookie, id, err := s.P.Authentificator.SignCookies(context.Background(), nil)
 	require.NoError(t, err, "Error set cookies")
 	serv, err := AddMock(urlMock, &s, id)
 	require.NoError(t, err, "Error add mock")
@@ -140,7 +140,7 @@ func Test_getUrl(t *testing.T) {
 
 	s, err := initServer()
 	require.NoError(t, err, "Error init server")
-	cookie, _, err := s.P.Authentificator.SignCookies(context.Background())
+	cookie, _, err := s.P.Authentificator.SignCookies(context.Background(), nil)
 	require.NoError(t, err, "Error set cookies")
 
 	server := httptest.NewServer(http.HandlerFunc(s.P.Authentificator.MiddlewareCookies(s.shortURL)))
@@ -239,7 +239,7 @@ func Test_shortenBatchJSON(t *testing.T) {
 
 	s, err := initServer()
 	require.NoError(t, err, "Error init server")
-	cookie, _, err := s.P.Authentificator.SignCookies(context.Background())
+	cookie, _, err := s.P.Authentificator.SignCookies(context.Background(), nil)
 	require.NoError(t, err, "Error set cookies")
 
 	server := httptest.NewServer(http.HandlerFunc(s.P.Authentificator.MiddlewareCookies(s.shortenBatchJSON)))
