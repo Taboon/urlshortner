@@ -6,44 +6,42 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/config"
+	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
+	"github.com/Taboon/urlshortner/internal/server/auth"
+	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
+	"github.com/Taboon/urlshortner/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/Taboon/urlshortner/internal/config"
-	"github.com/Taboon/urlshortner/internal/domain/usecase"
-	gzipMW "github.com/Taboon/urlshortner/internal/server/gzip"
-	"github.com/Taboon/urlshortner/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestSendUrl(t *testing.T) {
-	urlMock := storage.URLData{
-		URL: "http://ya.ru",
-		ID:  "AAAAaaaa",
-	}
-
+func initServer() (Server, error) {
 	// инициализируем конфиг
 	configBuilder := config.NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
 	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Info")
+	configBuilder.SetLogger("Debug")
 	conf := configBuilder.Build()
 	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
-	require.NoError(t, err, "Error initialize logger")
+	if err != nil {
+		return Server{}, err
+	}
 	// инициализируем хранилище
 	stor := storage.NewMemoryStorage(l)
 	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
+		Repo:            stor,
+		Log:             l,
+		Authentificator: auth.NewAuthentificator(l, stor),
 	}
 	// инициализируем сервер
 	s := Server{
@@ -55,8 +53,29 @@ func TestSendUrl(t *testing.T) {
 		},
 	}
 
-	err = s.P.Repo.AddURL(context.Background(), urlMock)
-	require.NoError(t, err, "Error add URL mock")
+	return s, nil
+}
+
+func AddMock(urlMock storage.URLData, s *Server) (*Server, error) {
+	ctx := context.WithValue(context.Background(), storage.UserID, 4)
+	err := s.P.Repo.AddURL(ctx, urlMock)
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func TestSendUrl(t *testing.T) {
+	urlMock := storage.URLData{
+		URL: "http://ya.ru",
+		ID:  "AAAAaaaa",
+	}
+
+	s, err := initServer()
+	require.NoError(t, err, "Error init server")
+	serv, err := AddMock(urlMock, &s)
+	require.NoError(t, err, "Error add mock")
+	s = *serv
 
 	tests := []struct {
 		name         string
@@ -88,6 +107,13 @@ func TestSendUrl(t *testing.T) {
 			req, err := http.NewRequest(tt.method, url, nil)
 			require.NoError(t, err, "Error new request")
 
+			// Добавляем куку
+			req.AddCookie(&http.Cookie{
+				Name:     "Authorization",
+				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
+				HttpOnly: true,
+			})
+
 			// Выполняем запрос
 			resp, err := client.Do(req)
 			require.NoError(t, err, "Error do request")
@@ -104,11 +130,6 @@ func TestSendUrl(t *testing.T) {
 
 func Test_getUrl(t *testing.T) {
 
-	urlMock := storage.URLData{
-		URL: "http://ya.ru",
-		ID:  "AAAAaaaa",
-	}
-
 	tests := []struct {
 		name         string
 		method       string
@@ -117,42 +138,15 @@ func Test_getUrl(t *testing.T) {
 		expectedCode int
 		expectedBody string
 	}{
-		{name: "test1", method: http.MethodPost, body: "http://ya2.ru", contentType: "text/plain", expectedCode: http.StatusCreated},
+		{name: "test1", method: http.MethodPost, body: "http://ya.ru", contentType: "text/plain", expectedCode: http.StatusCreated},
 		{name: "test2", method: http.MethodPost, body: "htt://ya2.ru", contentType: "", expectedCode: http.StatusBadRequest},
 		{name: "test3", method: http.MethodPost, body: "http://ya.ru", contentType: "", expectedCode: http.StatusConflict},
 	}
 
-	//инициализируем конфиг
-	configBuilder := config.NewConfigBuilder()
-	configBuilder.SetLocalAddress("127.0.0.1", 8080)
-	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Info")
-	conf := configBuilder.Build()
-	//инициализируем логгер
-	l, err := logger.Initialize(*conf)
-	require.NoError(t, err)
-	//инициализируем хранилище
-	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
-	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
-	}
-	//инициализируем сервер
-	s := Server{
-		LocalAddress: conf.LocalAddress.String(),
-		BaseURL:      conf.BaseURL.String(),
-		P:            urlProcessor,
-		Log: &logger.Logger{
-			Logger: l,
-		},
-	}
+	s, err := initServer()
+	require.NoError(t, err, "Error init server")
 
-	err = s.P.Repo.AddURL(context.Background(), urlMock)
-	require.NoError(t, err)
-
-	server := httptest.NewServer(http.HandlerFunc(s.shortURL))
+	server := httptest.NewServer(http.HandlerFunc(s.P.Authentificator.MiddlewareCookies(s.shortURL)))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -167,6 +161,13 @@ func Test_getUrl(t *testing.T) {
 			// Создаем GET запрос
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.body))
 			require.NoError(t, err)
+
+			// Добавляем куку
+			req.AddCookie(&http.Cookie{
+				Name:     "Authorization",
+				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
+				HttpOnly: true,
+			})
 
 			// Выполняем запрос
 			resp, err := client.Do(req)
@@ -194,34 +195,10 @@ func Test_shortenJSON(t *testing.T) {
 		{name: "test4", request: "{\"url\": \"\"}", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
 
-	//инициализируем конфиг
-	configBuilder := config.NewConfigBuilder()
-	configBuilder.SetLocalAddress("127.0.0.1", 8080)
-	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Info")
-	conf := configBuilder.Build()
-	//инициализируем логгер
-	l, err := logger.Initialize(*conf)
-	require.NoError(t, err)
-	//инициализируем хранилище
-	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
-	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
-	}
-	//инициализируем сервер
-	s := Server{
-		LocalAddress: conf.LocalAddress.String(),
-		BaseURL:      conf.BaseURL.String(),
-		P:            urlProcessor,
-		Log: &logger.Logger{
-			Logger: l,
-		},
-	}
+	s, err := initServer()
+	require.NoError(t, err, "Error init server")
 
-	server := httptest.NewServer(http.HandlerFunc(s.shortenJSON))
+	server := httptest.NewServer(http.HandlerFunc(s.P.Authentificator.MiddlewareCookies(s.shortenJSON)))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(_ *http.Request, via []*http.Request) error {
@@ -234,6 +211,14 @@ func Test_shortenJSON(t *testing.T) {
 
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
 			fmt.Println(tt.request)
+
+			// Добавляем куку
+			req.AddCookie(&http.Cookie{
+				Name:     "Authorization",
+				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
+				HttpOnly: true,
+			})
+
 			req.Header.Set("Content-Type", tt.contentType)
 
 			require.NoError(t, err)
@@ -268,33 +253,10 @@ func Test_shortenBatchJSON(t *testing.T) {
 		{name: "test4", request: "[{ \"https://yandex.ru\"}]", contentType: "application/json", expectedCode: http.StatusBadRequest},
 	}
 
-	//инициализируем конфиг
-	configBuilder := config.NewConfigBuilder()
-	configBuilder.SetLocalAddress("127.0.0.1", 8080)
-	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetLogger("Debug")
-	conf := configBuilder.Build()
-	//инициализируем логгер
-	l, err := logger.Initialize(*conf)
-	require.NoError(t, err)
-	//инициализируем хранилище
-	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
-	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
-	}
-	//инициализируем сервер
-	s := Server{
-		LocalAddress: conf.LocalAddress.String(),
-		BaseURL:      conf.BaseURL.String(),
-		P:            urlProcessor,
-		Log: &logger.Logger{
-			Logger: l,
-		},
-	}
+	s, err := initServer()
+	require.NoError(t, err, "Error init server")
 
-	server := httptest.NewServer(http.HandlerFunc(s.shortenBatchJSON))
+	server := httptest.NewServer(http.HandlerFunc(s.P.Authentificator.MiddlewareCookies(s.shortenBatchJSON)))
 	defer server.Close()
 
 	client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -307,6 +269,14 @@ func Test_shortenBatchJSON(t *testing.T) {
 
 			req, err := http.NewRequest("POST", url, strings.NewReader(tt.request))
 			fmt.Println(tt.request)
+
+			// Добавляем куку
+			req.AddCookie(&http.Cookie{
+				Name:     "Authorization",
+				Value:    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQ0ODIyOTQsIlVzZXJJRCI6NH0.J-B_xUe-HJ6K-8VJuFsvSz6u0jcFpPIWfd8dKVU65E8",
+				HttpOnly: true,
+			})
+
 			req.Header.Set("Content-Type", tt.contentType)
 
 			require.NoError(t, err)
@@ -339,34 +309,10 @@ func Test_shortenBatchJSON(t *testing.T) {
 func TestGzipCompression(t *testing.T) {
 	requestBody := `{"url": "https://ya.ru"}`
 
-	//инициализируем конфиг
-	configBuilder := config.NewConfigBuilder()
-	configBuilder.SetLocalAddress("127.0.0.1", 8080)
-	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase("/tmp/short-url-db.json")
-	configBuilder.SetLogger("Info")
-	conf := configBuilder.Build()
-	//инициализируем логгер
-	l, err := logger.Initialize(*conf)
-	require.NoError(t, err)
-	//инициализируем хранилище
-	stor := storage.NewMemoryStorage(l)
-	//инициализируем URL процессор
-	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
-	}
-	//инициализируем сервер
-	s := Server{
-		LocalAddress: conf.LocalAddress.String(),
-		BaseURL:      conf.BaseURL.String(),
-		P:            urlProcessor,
-		Log: &logger.Logger{
-			Logger: l,
-		},
-	}
+	s, err := initServer()
+	require.NoError(t, err, "Error init server")
 
-	handler := http.HandlerFunc(gzipMW.MiddlewareGzip(s.shortenJSON))
+	handler := http.HandlerFunc(gzipMW.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortenJSON)))
 	srv := httptest.NewServer(handler)
 	defer srv.Close()
 
@@ -404,7 +350,7 @@ func TestGzipCompression(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(r)
 		require.NoError(t, err)
-		require.Equal(t, http.StatusConflict, resp.StatusCode)
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		defer resp.Body.Close()
 

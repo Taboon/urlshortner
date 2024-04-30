@@ -68,15 +68,7 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 	is.mu.Lock()
 	defer is.mu.Unlock()
 
-	var id int
-	i := ctx.Value(UserID)
-	if i != nil {
-		id = i.(int)
-	}
-
-	if id == 0 {
-		return entity.ErrUnknownID
-	}
+	id := ctx.Value(UserID).(int)
 
 	_, ok := is.Users[id]
 	if ok {
