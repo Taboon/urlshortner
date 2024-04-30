@@ -58,7 +58,7 @@ func main() { //nolint:funlen
 	urlProcessor := usecase.URLProcessor{
 		Repo:            stor,
 		Log:             l,
-		Authentificator: auth.NewAuthentificator(l, stor),
+		Authentificator: auth.NewAuthentificator(l, stor, conf.BaseURL),
 	}
 
 	// инициализируем сервер

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/Taboon/urlshortner/internal/config"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -13,14 +14,16 @@ import (
 )
 
 type Autentificator struct {
-	Log *zap.Logger
-	R   storage.Repository
+	Log     *zap.Logger
+	R       storage.Repository
+	BaseURL config.Address
 }
 
-func NewAuthentificator(l *zap.Logger, r storage.Repository) Autentificator {
+func NewAuthentificator(l *zap.Logger, r storage.Repository, bu config.Address) Autentificator {
 	return Autentificator{
-		Log: l,
-		R:   r,
+		Log:     l,
+		R:       r,
+		BaseURL: bu,
 	}
 }
 
@@ -72,6 +75,7 @@ func (a *Autentificator) signCookies(ctx context.Context) (*http.Cookie, int, er
 		Value:    fmt.Sprintf("%v%v", Scheme, token),
 		Secure:   false,
 		HttpOnly: false,
+		Domain:   a.BaseURL.String(),
 		SameSite: 1,
 	}
 	return &cookie, id, err
