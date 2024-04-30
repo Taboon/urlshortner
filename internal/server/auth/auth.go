@@ -77,7 +77,7 @@ func (a *Autentificator) SignCookies(ctx context.Context) (*http.Cookie, int, er
 		Secure:   true,
 		HttpOnly: true,
 		MaxAge:   3600,
-		//Domain:   a.BaseURL.IP,
+		Domain:   a.BaseURL.IP,
 		Path:     "./",
 		SameSite: 0,
 	}
