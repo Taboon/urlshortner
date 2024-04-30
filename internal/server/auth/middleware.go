@@ -8,8 +8,8 @@ import (
 func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc {
 	auth := func(w http.ResponseWriter, r *http.Request) {
 		var id int
-		cookie, err := r.Cookie("Authorization")
 		ctx := r.Context()
+		cookie, err := r.Cookie("Authorization")
 		if err != nil {
 			w, id = a.setCookies(ctx, w)
 			a.Log.Debug("Устанавливаем куки")
