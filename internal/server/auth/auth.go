@@ -61,6 +61,7 @@ func (a *Autentificator) setCookies(ctx context.Context, w http.ResponseWriter) 
 		return w, 0
 	}
 	http.SetCookie(w, cookie)
+	a.Log.Debug("Установили куки", zap.Any("cookie", cookie))
 	return w, id
 }
 
