@@ -75,11 +75,11 @@ func (a *Autentificator) SignCookies(ctx context.Context) (*http.Cookie, int, er
 		Name:     "Authorization",
 		Value:    fmt.Sprintf("%v%v", Scheme, token),
 		Secure:   false,
-		HttpOnly: false,
+		HttpOnly: true,
 		MaxAge:   3600,
-		Domain:   a.BaseURL.IP,
+		//Domain:   a.BaseURL.IP,
 		Path:     "./",
-		SameSite: 1,
+		SameSite: 0,
 	}
 	return &cookie, id, err
 }
