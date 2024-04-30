@@ -70,7 +70,8 @@ func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
 
-	_, err := p.db.Query(c, "AddURL", data.ID, data.URL, id)
+	rows, err := p.db.Query(c, "AddURL", data.ID, data.URL, id)
+	defer rows.Close()
 	if err != nil {
 		return err
 	}
@@ -217,6 +218,7 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 
 	urls := UserURLs{}
 	rows, err := p.db.Query(c, "SELECT url, id FROM urls WHERE userID = $1", id)
+	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
