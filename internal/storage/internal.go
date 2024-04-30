@@ -71,11 +71,12 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 
 	id := ctx.Value(UserID).(int)
 
-	_, ok := is.Users[id]
+	urls, ok := is.Users[id]
 	if ok {
-		is.Users[id] = append(is.Users[id], data)
+		is.Users[id] = append(urls, data)
+	} else {
+		is.Users[id] = append(UserURLs{}, data)
 	}
-	is.Users[id] = append(UserURLs{}, data)
 
 	if is.Backuper != nil {
 		is.Log.Debug("Пишем в файл бекапа")
