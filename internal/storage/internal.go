@@ -70,7 +70,7 @@ func (is *InternalStorage) AddURL(ctx context.Context, data URLData) error {
 
 	var id int
 	i := ctx.Value(UserID)
-	if i == nil {
+	if i != nil {
 		id = i.(int)
 	}
 
