@@ -109,7 +109,7 @@ func parseFlags(conf *Config) error {
 	flag.StringVar(&conf.DataBase, "d", "", "data base url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
-	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
+	flag.StringVar(&conf.LogLevel, "log", "Debug", "loglevel (Info, Debug, Error)")
 	flag.Parse()
 	return nil
 }
