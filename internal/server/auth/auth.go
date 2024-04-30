@@ -72,13 +72,14 @@ func (a *Autentificator) SignCookies(ctx context.Context) (*http.Cookie, int, er
 	}
 	a.Log.Debug("Подписываем куки", zap.String("token", token))
 	cookie := http.Cookie{
-		Name:  "Authorization",
-		Value: fmt.Sprintf("%v%v", Scheme, token),
-		//Secure:   false,
-		//HttpOnly: false,
-		MaxAge: 3600,
-		Domain: a.BaseURL.IP,
-		//SameSite: 1,
+		Name:     "Authorization",
+		Value:    fmt.Sprintf("%v%v", Scheme, token),
+		Secure:   false,
+		HttpOnly: false,
+		MaxAge:   3600,
+		Domain:   a.BaseURL.IP,
+		Path:     "./",
+		SameSite: 1,
 	}
 	return &cookie, id, err
 }
