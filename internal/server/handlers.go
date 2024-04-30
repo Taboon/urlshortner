@@ -236,7 +236,7 @@ func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	id := r.Context().Value(storage.UserID).(int)
 	urls, err := s.P.Repo.GetURLsByUser(r.Context(), id)
 	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
+		if !errors.Is(err, pgx.ErrNoRows) { //nolint: typecheck
 			http.Error(w, "Нет доступных URL: "+err.Error(), http.StatusNoContent)
 			return
 		}
