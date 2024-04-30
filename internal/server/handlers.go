@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Taboon/urlshortner/internal/entity"
 	"github.com/Taboon/urlshortner/internal/storage"
@@ -52,6 +53,7 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) shortURL(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 1)
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)

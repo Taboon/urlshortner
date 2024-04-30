@@ -6,9 +6,8 @@ import (
 )
 
 func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc {
-	a.Log.Debug("Проверяем куки")
-	var id int
 	auth := func(w http.ResponseWriter, r *http.Request) {
+		var id int
 		cookie, err := r.Cookie("Authorization")
 		ctx := r.Context()
 		if err != nil {

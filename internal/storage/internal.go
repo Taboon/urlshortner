@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"go.uber.org/zap"
 	"sync"
 
@@ -107,7 +106,6 @@ func (is *InternalStorage) CheckID(_ context.Context, id string) (URLData, bool,
 func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, bool, error) {
 	is.Log.Debug("Проверяем URL", zap.String("url", url))
 	userid := ctx.Value(UserID).(int)
-	fmt.Println(is.Users)
 	user, ok := is.Users[userid]
 	if ok {
 		for _, v := range user {
