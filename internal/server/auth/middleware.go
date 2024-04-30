@@ -15,7 +15,11 @@ func (a *Autentificator) MiddlewareCookies(h http.HandlerFunc) http.HandlerFunc 
 		cookie, err := r.Cookie("Authorization")
 		if err != nil {
 			a.Log.Debug("Устанавливаем куки")
+			fmt.Println("====")
+			fmt.Println(w)
 			w, id = a.setCookies(ctx, w)
+			fmt.Println(w)
+			fmt.Println("====")
 		} else {
 			a.Log.Debug("Достаем ID из куки")
 			id = a.readToken(ctx, cookie.Value)
