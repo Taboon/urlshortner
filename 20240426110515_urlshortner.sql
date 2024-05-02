@@ -5,8 +5,9 @@ CREATE TABLE users (
 
 CREATE TABLE urls (
                       id VARCHAR(8) PRIMARY KEY,
-                      url VARCHAR(2048) UNIQUE,
-                      userID INT,
+                      url VARCHAR(2048),
+                    deleted bool,
+                      userid INT,
                       FOREIGN KEY (userID) REFERENCES users(id)
 );
 

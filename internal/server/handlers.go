@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Taboon/urlshortner/internal/entity"
@@ -18,6 +20,8 @@ import (
 type RequestJSON struct {
 	URL string `json:"url"`
 }
+
+type RequestJSONRemoveURLs []string
 
 type Response struct {
 	Result string
@@ -35,6 +39,11 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	v, err := s.P.Get(r.Context(), path)
 	if err != nil {
 		http.Error(w, "Не удалось получить URL", http.StatusBadRequest)
+		return
+	}
+
+	if v.Deleted {
+		http.Error(w, "URL удален", http.StatusGone)
 		return
 	}
 
@@ -82,8 +91,9 @@ func (s *Server) shortURL(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("shortenJSON")
+	reqJSON := RequestJSON{}
 	// получаем JSON
-	requestBody, err := s.getURLJSON(w, r)
+	requestBody, err := getURLJSON(w, r, reqJSON)
 	if err != nil {
 		http.Error(w, "Ошибка получения JSON: "+err.Error(), http.StatusBadRequest)
 		return
@@ -106,6 +116,139 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	s.writeResponse(s.setHeader(w, err), response)
 }
 
+func (s *Server) removeURLs(w http.ResponseWriter, r *http.Request) {
+	s.Log.Info("Получили запрос на удаление ссылок")
+	var reqJSON []string
+	// получаем JSON
+	requestBody, err := getURLJSON(w, r, reqJSON)
+	if err != nil {
+		http.Error(w, "Ошибка получения JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	doneCh := make(chan struct{})
+
+	inputCh := s.generator(doneCh, requestBody)
+	channels := s.fanOut(r.Context(), doneCh, inputCh)
+	addResultCh := s.fanIn(doneCh, channels...)
+	s.remover(r.Context(), doneCh, addResultCh)
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (s *Server) generator(doneCh chan struct{}, input []string) chan string {
+	genChan := make(chan string)
+	s.Log.Debug("Открыли канал genChan")
+	go func() {
+		defer func() {
+			s.Log.Debug("Закрыли канал genChan")
+			close(genChan)
+		}()
+		fmt.Println(input)
+
+		for _, data := range input {
+			select {
+			case <-doneCh:
+				s.Log.Debug("Получили DONE")
+				return
+			case genChan <- data:
+				s.Log.Debug("Отправили в канал genChan", zap.String("data", data))
+			}
+		}
+	}()
+
+	return genChan
+}
+
+func (s *Server) remover(ctx context.Context, doneCh chan struct{}, idToRemove chan storage.URLData) {
+	s.Log.Debug("remover начал работу")
+	go func() {
+		defer func() {
+			close(doneCh)
+			s.Log.Debug("Закрыли канал DONE")
+		}()
+
+		var batch = make([]storage.URLData, 0)
+
+		for data := range idToRemove {
+			batch = append(batch, data)
+			s.Log.Debug("Добавили в batch", zap.String("id", data.ID))
+		}
+
+		s.Log.Debug("Подготовили batch", zap.Any("batch", batch))
+		s.P.Repo.RemoveURL(ctx, batch)
+	}()
+	return
+}
+
+func (s *Server) fanOut(ctx context.Context, doneCh chan struct{}, inputCh chan string) []chan storage.URLData {
+	numWorkers := 5
+	channels := make([]chan storage.URLData, numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		addResultCh := s.checkID(ctx, doneCh, inputCh)
+		channels[i] = addResultCh
+	}
+	return channels
+}
+
+func (s *Server) checkID(ctx context.Context, doneCh chan struct{}, in chan string) chan storage.URLData {
+	checkIDout := make(chan storage.URLData)
+	go func() {
+		defer func() {
+			s.Log.Debug("Закрыли канал checkIDout")
+			close(checkIDout)
+		}()
+
+		for data := range in {
+			url, ok, err := s.P.Repo.CheckID(ctx, data)
+			if err != nil {
+				s.Log.Error("ошибка при проверке ID", zap.Error(err))
+			}
+			s.Log.Debug("Получили инфу по id", zap.String("id", data), zap.Bool("ok", ok), zap.Any("url", url))
+			if ok {
+				select {
+				case <-doneCh:
+					return
+				case checkIDout <- url:
+					s.Log.Debug("Отправили инфу в канал checkIDout")
+				}
+			}
+		}
+	}()
+	return checkIDout
+}
+
+func (s *Server) fanIn(doneCh chan struct{}, resultChs ...chan storage.URLData) chan storage.URLData {
+	finalCh := make(chan storage.URLData)
+
+	var wg sync.WaitGroup
+
+	for _, ch := range resultChs {
+		chClosure := ch
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for data := range chClosure {
+				select {
+				case <-doneCh:
+					return
+				case finalCh <- data:
+					s.Log.Debug("Отправляем в канал fanIn", zap.String("id", data.ID))
+				}
+			}
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(finalCh)
+		s.Log.Debug("Закрыли канал finalCh")
+	}()
+
+	return finalCh
+}
+
 func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter {
 	switch {
 	case errors.Is(err, entity.ErrURLExist):
@@ -119,31 +262,25 @@ func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter
 	return w
 }
 
-func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON, error) {
-	var requestBody = RequestJSON{}
-
+func getURLJSON[T any](w http.ResponseWriter, r *http.Request, structure T) (T, error) {
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, err
 	}
 
 	if !json.Valid(req) {
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, entity.ErrJSONInvalid
 	}
 
-	err = json.Unmarshal(req, &requestBody)
+	err = json.Unmarshal(req, &structure)
 	if err != nil {
 		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, err
 	}
 
-	if requestBody.URL == "" {
-		http.Error(w, "Пустой URL", http.StatusBadRequest)
-		return RequestJSON{}, nil
-	}
-	return requestBody, err
+	return structure, err
 }
 
 func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
@@ -246,7 +383,7 @@ func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
 	if len(urls) > 0 {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		fmt.Println(urls)
+		fmt.Println("что ", urls)
 		s.writeResponse(w, s.setBaseURL(&urls))
 		return
 	}

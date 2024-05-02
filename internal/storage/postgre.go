@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -62,15 +63,16 @@ func (p *Postgre) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (p *Postgre) AddURL(ctx context.Context, data URLData) error {
-	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", data.URL))
+func (p *Postgre) AddURL(ctx context.Context, urlData URLData) error {
+	p.Log.Debug("Добавляем URL в базу данных", zap.String("url", urlData.URL))
 	id := ctx.Value(UserID)
 	p.Log.Debug("ID из контекста", zap.Any("id", id))
+	deleted := false
 
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
 
-	rows, err := p.db.Query(c, "AddURL", data.ID, data.URL, id)
+	rows, err := p.db.Query(c, "AddURL", urlData.ID, urlData.URL, deleted, id)
 	if err != nil {
 		return err
 	}
@@ -109,6 +111,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 	return b, nil
 }
 
+// (doneCh chan struct{}, inputCh chan int) chan int
 func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	return p.check(ctx, "id", id)
 }
@@ -118,14 +121,16 @@ func (p *Postgre) CheckURL(ctx context.Context, url string) (URLData, bool, erro
 }
 
 func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool, error) {
-	var i string
-	var u string
+	var returnID string
+	var returnURL string
+	var deleted bool
+	userID := ctx.Value(UserID)
+	p.Log.Debug("Проверяем в базе", zap.Any("user", userID), zap.String("parametr", v))
 
-	c, cancel := context.WithTimeout(ctx, time.Second*1)
-	defer cancel()
+	c := context.WithoutCancel(ctx)
 
-	insertType := fmt.Sprintf("SELECT id, url FROM urls WHERE %v = $1", t)
-	err := p.db.QueryRow(c, insertType, v).Scan(&i, &u)
+	insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1 AND userid = $2", t)
+	err := p.db.QueryRow(c, insertType, v, userID).Scan(&returnID, &returnURL, &deleted)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			p.Log.Debug("Не нашли запись в базе данных")
@@ -136,8 +141,8 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 			return URLData{}, false, err
 		}
 	}
-	p.Log.Debug("Возвращаем URLData", zap.String("url", u), zap.String("id", i))
-	return URLData{URL: u, ID: i}, true, nil
+	p.Log.Debug("Возвращаем URLData", zap.String("url", returnURL), zap.String("id", returnID))
+	return URLData{URL: returnURL, ID: returnID, Deleted: deleted}, true, nil
 }
 
 func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
@@ -148,7 +153,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	val, queryInsert := p.getQueryInsert(ctx, urls)
 
 	// Проверка существования урлов в базе данных
-	query := "SELECT url, id FROM urls WHERE url IN (" + queryInsert + ")"
+	query := "SELECT url, id, deleted FROM urls WHERE url IN (" + queryInsert + ")"
 	rows, err := p.db.Query(c, query, val...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
@@ -159,7 +164,8 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	for rows.Next() {
 		var url string
 		var id string
-		err := rows.Scan(&url, &id)
+		var deleted bool
+		err := rows.Scan(&url, &id, &deleted)
 		if err != nil {
 			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
@@ -168,6 +174,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 			if v.URL == url {
 				(*urls)[i].Err = entity.ErrURLExist
 				(*urls)[i].ID = id
+				(*urls)[i].Deleted = deleted
 			}
 		}
 	}
@@ -192,9 +199,36 @@ func (p *Postgre) getQueryInsert(_ context.Context, urls *ReqBatchURLs) ([]inter
 	return val, queryInsert
 }
 
-func (p *Postgre) RemoveURL(_ context.Context, _ URLData) error {
-	// TODO implement me
-	panic("implement me4")
+func (p *Postgre) RemoveURL(ctx context.Context, data []URLData) error {
+	remove := true
+	c := context.WithoutCancel(ctx)
+	tx, err := p.db.Begin(context.Background())
+	if err != nil {
+		log.Fatalf("Unable to begin transaction: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			err := tx.Rollback(context.Background())
+			if err != nil {
+				p.Log.Error("Rollback transaction failed", zap.Error(err))
+			}
+			p.Log.Error("Transaction failed", zap.Error(err))
+		} else {
+			err := tx.Commit(context.Background())
+			if err != nil {
+				p.Log.Error("Commit transaction failed", zap.Error(err))
+			}
+		}
+	}()
+
+	for _, url := range data {
+		_, err := tx.Exec(c, "UPDATE urls SET deleted = $1 WHERE id = $2", remove, url.ID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *Postgre) GetNewUser(ctx context.Context) (int, error) {
@@ -217,7 +251,7 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 	p.Log.Debug("Получаем все URL пользователя", zap.Int("id", id))
 
 	urls := UserURLs{}
-	rows, err := p.db.Query(c, "SELECT url, id FROM urls WHERE userID = $1", id)
+	rows, err := p.db.Query(c, "SELECT url, id, deleted FROM urls WHERE userID = $1", id)
 	if err != nil {
 		return nil, err
 	}
@@ -225,14 +259,16 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 	for rows.Next() {
 		var url string
 		var shortID string
+		var deleted bool
 		err := rows.Scan(&url, &shortID)
 		if err != nil {
 			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
 		}
 		urls = append(urls, URLData{
-			URL: url,
-			ID:  shortID,
+			URL:     url,
+			ID:      shortID,
+			Deleted: deleted,
 		})
 	}
 	return urls, nil
@@ -281,7 +317,7 @@ func setPrepare(db *pgx.Conn) {
 	if err != nil {
 		panic(err)
 	}
-	_, err = db.Prepare(ctx, "AddURL", `INSERT INTO urls (id, url, userID) VALUES ($1, $2, $3)`)
+	_, err = db.Prepare(ctx, "AddURL", `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		panic(err)
 	}

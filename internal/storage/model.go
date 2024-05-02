@@ -1,8 +1,9 @@
 package storage
 
 type URLData struct {
-	URL string `json:"original_url"`
-	ID  string `json:"short_url"`
+	URL     string `json:"original_url"`
+	ID      string `json:"short_url"`
+	Deleted bool   `json:"-"`
 }
 
 type ReqBatchURLs []ReqBatchURL
@@ -12,6 +13,7 @@ type ReqBatchURL struct {
 	ID         string
 	URL        string `json:"original_url"`
 	Err        error
+	Deleted    bool
 }
 
 type RespBatchURLs []RespBatchURL

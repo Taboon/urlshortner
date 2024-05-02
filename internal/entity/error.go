@@ -10,6 +10,8 @@ var ErrUnknownUser = errors.New("unknown user")
 
 var ErrUnknownID = errors.New("unknown ID")
 var ErrEmptyFlag = errors.New("empty flag")
+var ErrEmptyRequest = errors.New("empty request")
+var ErrUnknownStruct = errors.New("unknown struct")
 
 var ErrNoURLToSave = errors.New("no have url to save")
 var ErrJSONInvalid = errors.New("invalid json")

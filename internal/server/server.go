@@ -42,10 +42,11 @@ func (s *Server) URLRouter() chi.Router {
 	r := chi.NewRouter()
 
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
-	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
+	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.getURL))))
 	r.Get("/api/user/urls", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.getUserURLs))))
 	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortURL))))
 	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortenJSON))))
 	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortenBatchJSON))))
+	r.Delete("/api/user/urls", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.removeURLs))))
 	return r
 }

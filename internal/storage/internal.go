@@ -119,6 +119,6 @@ func (is *InternalStorage) CheckURL(ctx context.Context, url string) (URLData, b
 	return URLData{}, false, nil
 }
 
-func (is *InternalStorage) RemoveURL(_ context.Context, _ URLData) error {
+func (is *InternalStorage) RemoveURL(_ context.Context, _ []URLData) error {
 	return nil
 }
