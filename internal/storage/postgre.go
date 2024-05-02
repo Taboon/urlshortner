@@ -87,6 +87,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 	}
 	id := ctx.Value(UserID)
 	p.Log.Debug("ID из контекста", zap.Any("id", id))
+	deleted := false
 
 	for _, v := range *b {
 		// если данные не валидны, пропускаем текущую итерацию
@@ -96,7 +97,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL, id)
+		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL, deleted, id)
 
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
