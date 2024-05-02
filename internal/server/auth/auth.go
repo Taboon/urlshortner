@@ -75,10 +75,10 @@ func (a *Autentificator) SignCookies(ctx context.Context, w http.ResponseWriter)
 		Name:  "Authorization",
 		Value: fmt.Sprintf("%v%v", Scheme, token),
 		//Secure:   true,
-		HttpOnly: true,
-		MaxAge:   3600,
-		Domain:   a.BaseURL.IP,
-		//SameSite: http.SameSiteNoneMode,
+		//HttpOnly: true,
+		MaxAge: 3600,
+		//Domain:   a.BaseURL.IP,
+		SameSite: http.SameSiteNoneMode,
 	}
 	if w != nil {
 		w.Header().Set("Authorization", fmt.Sprintf("%v%v", Scheme, token))
