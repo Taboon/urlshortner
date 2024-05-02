@@ -288,26 +288,27 @@ func getURLJSON[T any](w http.ResponseWriter, r *http.Request, structure T) (T, 
 func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("shortenBatchJSON")
 	// получаем все url в json
-	urls, err := getReqBatchJSON(w, r)
+	var reqBatchJSON storage.ReqBatchURLs
+	urls, err := getURLJSON(w, r, reqBatchJSON)
 	if err != nil {
 		s.Log.Error("Ошибка получения JSON", zap.Error(err))
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
 		return
 	}
-	if len(*urls) == 0 {
+	if len(urls) == 0 {
 		http.Error(w, "Пустой JSON", http.StatusBadRequest)
 		return
 	}
 
 	// пытаемся сохранить
-	urls, err = s.P.BatchURLSave(r.Context(), urls)
+	u, err := s.P.BatchURLSave(r.Context(), &urls)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// пишем результат в JSON
-	respBathJSON := s.getRespBatchJSON(urls)
+	respBathJSON := s.getRespBatchJSON(u)
 
 	// отправляем ответ
 	w.Header().Set("Content-Type", "application/json")
@@ -347,28 +348,6 @@ func (s *Server) writeResponse(w http.ResponseWriter, r interface{}) {
 		http.Error(w, "Не удалось записать ответ: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-}
-
-func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchURLs, error) {
-	var reqBatchJSON storage.ReqBatchURLs
-
-	req, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
-		return nil, err
-	}
-
-	if !json.Valid(req) {
-		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return nil, entity.ErrJSONInvalid
-	}
-
-	err = json.Unmarshal(req, &reqBatchJSON)
-	if err != nil {
-		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return nil, err
-	}
-	return &reqBatchJSON, nil
 }
 
 func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
