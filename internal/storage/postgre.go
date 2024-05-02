@@ -268,7 +268,7 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 		var url string
 		var shortID string
 		var deleted bool
-		err := rows.Scan(&url, &shortID)
+		err := rows.Scan(&url, &shortID, &deleted)
 		if err != nil {
 			p.Log.Error("Error scanning row:", zap.Error(err))
 			return nil, err
