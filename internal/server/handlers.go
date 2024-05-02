@@ -36,7 +36,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
 
-	v, err := s.P.Get(r.Context(), path)
+	ctx := context.WithValue(r.Context(), storage.UserID, 0)
+	v, err := s.P.Get(ctx, path)
 	if err != nil {
 		http.Error(w, "Не удалось получить URL", http.StatusBadRequest)
 		return

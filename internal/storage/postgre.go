@@ -130,8 +130,15 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 
 	c := context.WithoutCancel(ctx)
 
-	insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1 AND userid = $2", t)
-	err := p.db.QueryRow(c, insertType, v, userID).Scan(&returnID, &returnURL, &deleted)
+	var err error
+	if userID == 0 {
+		insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1", t)
+		err = p.db.QueryRow(c, insertType, v).Scan(&returnID, &returnURL, &deleted)
+	} else {
+		insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1 AND userid = $2", t)
+		err = p.db.QueryRow(c, insertType, v, userID).Scan(&returnID, &returnURL, &deleted)
+	}
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			p.Log.Debug("Не нашли запись в базе данных")
