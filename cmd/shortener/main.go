@@ -32,9 +32,9 @@ func main() { //nolint:funlen
 	case conf.DataBase != "":
 		db, s := storage.SetPostgres(ctx, conf, l)
 		stor = s
-		defer func(db *pgxpool.Pool, ctx context.Context) {
+		defer func(db *pgxpool.Pool) {
 			db.Close()
-		}(db, context.Background())
+		}(db)
 	default:
 		internalStor := storage.NewMemoryStorage(l)
 
