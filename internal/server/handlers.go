@@ -176,9 +176,11 @@ func (s *Server) remover(ctx context.Context, doneCh chan struct{}, idToRemove c
 		}
 
 		s.Log.Debug("Подготовили batch", zap.Any("batch", batch))
-		s.P.Repo.RemoveURL(ctx, batch)
+		err := s.P.Repo.RemoveURL(ctx, batch)
+		if err != nil {
+			s.Log.Error("Ошибка удаления URL", zap.Error(err))
+		}
 	}()
-	return
 }
 
 func (s *Server) fanOut(ctx context.Context, doneCh chan struct{}, inputCh chan string) []chan storage.URLData {

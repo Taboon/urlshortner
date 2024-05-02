@@ -145,7 +145,7 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 	return URLData{URL: returnURL, ID: returnID, Deleted: deleted}, true, nil
 }
 
-func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) {
+func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBatchURLs, error) { //nolint: funlen
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
 
