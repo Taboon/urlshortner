@@ -3,14 +3,16 @@ package main
 import (
 	"context"
 	"github.com/Taboon/urlshortner/internal/server/auth"
+	"github.com/Taboon/urlshortner/internal/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
-	"github.com/Taboon/urlshortner/internal/storage"
-	pgx "github.com/jackc/pgx/v5"
+
+	_ "github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -30,11 +32,8 @@ func main() { //nolint:funlen
 	case conf.DataBase != "":
 		db, s := storage.SetPostgres(ctx, conf, l)
 		stor = s
-		defer func(db *pgx.Conn, ctx context.Context) {
-			err := db.Close(ctx)
-			if err != nil {
-				panic(err)
-			}
+		defer func(db *pgxpool.Pool, ctx context.Context) {
+			db.Close()
 		}(db, context.Background())
 	default:
 		internalStor := storage.NewMemoryStorage(l)

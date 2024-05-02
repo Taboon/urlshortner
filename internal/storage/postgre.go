@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
 	"strings"
@@ -19,13 +20,13 @@ import (
 )
 
 type Postgre struct {
-	db  *pgx.Conn
+	db  *pgxpool.Pool
 	Log *zap.Logger
 }
 
 var _ Repository = (*Postgre)(nil)
 
-func NewPostgreBase(db *pgx.Conn, log *zap.Logger) *Postgre {
+func NewPostgreBase(db *pgxpool.Pool, log *zap.Logger) *Postgre {
 	return &Postgre{
 		db:  db,
 		Log: log,
@@ -72,7 +73,7 @@ func (p *Postgre) AddURL(ctx context.Context, urlData URLData) error {
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
 
-	rows, err := p.db.Query(c, "AddURL", urlData.ID, urlData.URL, deleted, id)
+	rows, err := p.db.Query(c, `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`, urlData.ID, urlData.URL, deleted, id)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, "AddURL", v.ID, v.URL, deleted, id)
+		_, err := tx.Exec(ctx, `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`, v.ID, v.URL, deleted, id)
 
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
@@ -112,7 +113,6 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 	return b, nil
 }
 
-// (doneCh chan struct{}, inputCh chan int) chan int
 func (p *Postgre) CheckID(ctx context.Context, id string) (URLData, bool, error) {
 	return p.check(ctx, "id", id)
 }
@@ -245,7 +245,7 @@ func (p *Postgre) GetNewUser(ctx context.Context) (int, error) {
 
 	p.Log.Debug("Добавляем пользователя в базу и получаем ID")
 	var id int
-	err := p.db.QueryRow(c, "GetNewUser").Scan(&id)
+	err := p.db.QueryRow(c, `INSERT INTO users DEFAULT VALUES RETURNING id`).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -282,15 +282,18 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 	return urls, nil
 }
 
-func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgx.Conn, Repository) {
-	db, err := pgx.Connect(ctx, conf.DataBase)
+func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgxpool.Pool, Repository) {
 
+	configPool, err := pgxpool.ParseConfig(conf.DataBase)
 	if err != nil {
-		fprintf, err := fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		if err != nil {
-			return nil, nil
-		}
-		panic(fprintf)
+		panic(err)
+	}
+	configPool.MaxConns = 10
+
+	db, err := pgxpool.NewWithConfig(context.Background(), configPool)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
 	}
 
 	stor := NewPostgreBase(db, l)
@@ -312,25 +315,5 @@ func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgx.
 		panic(fprintf)
 	}
 
-	setPrepare(db)
-
 	return db, stor
-}
-
-func setPrepare(db *pgx.Conn) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
-	defer cancel()
-
-	_, err := db.Prepare(ctx, "GetURLSByUser", `SELECT url, id FROM urls WHERE userID = $1`)
-	if err != nil {
-		panic(err)
-	}
-	_, err = db.Prepare(ctx, "AddURL", `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`)
-	if err != nil {
-		panic(err)
-	}
-	_, err = db.Prepare(ctx, "GetNewUser", `INSERT INTO users DEFAULT VALUES RETURNING id`)
-	if err != nil {
-		panic(err)
-	}
 }
