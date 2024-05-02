@@ -283,8 +283,10 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 }
 
 func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgxpool.Pool, Repository) {
-
-	err, db := configurePool(conf)
+	db, err := configurePool(conf)
+	if err != nil {
+		panic(err)
+	}
 
 	stor := NewPostgreBase(db, l)
 	err = stor.Ping(ctx)
@@ -308,7 +310,7 @@ func SetPostgres(ctx context.Context, conf *config.Config, l *zap.Logger) (*pgxp
 	return db, stor
 }
 
-func configurePool(conf *config.Config) (error, *pgxpool.Pool) {
+func configurePool(conf *config.Config) (*pgxpool.Pool, error) {
 	configPool, err := pgxpool.ParseConfig(conf.DataBase)
 	if err != nil {
 		panic(err)
@@ -320,5 +322,5 @@ func configurePool(conf *config.Config) (error, *pgxpool.Pool) {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-	return err, db
+	return db, err
 }
