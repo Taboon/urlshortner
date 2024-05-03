@@ -3,12 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/Taboon/urlshortner/internal/config"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/storage"
 	jwt "github.com/golang-jwt/jwt/v4"
 )
