@@ -14,16 +14,18 @@ import (
 )
 
 type Autentificator struct {
-	Log     *zap.Logger
-	R       storage.Repository
-	BaseURL config.Address
+	Log       *zap.Logger
+	R         storage.Repository
+	BaseURL   config.Address
+	SecretKey string
 }
 
-func NewAuthentificator(l *zap.Logger, r storage.Repository, bu config.Address) Autentificator {
+func NewAuthentificator(l *zap.Logger, r storage.Repository, bu config.Address, key string) Autentificator {
 	return Autentificator{
-		Log:     l,
-		R:       r,
-		BaseURL: bu,
+		Log:       l,
+		R:         r,
+		BaseURL:   bu,
+		SecretKey: key,
 	}
 }
 
@@ -38,7 +40,7 @@ func (a *Autentificator) getUserID(_ context.Context, token string) int {
 	claims := &Claims{}
 	// парсим из строки токена tokenString в структуру claims
 	_, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
+		return []byte(a.SecretKey), nil
 	})
 	if err != nil {
 		a.Log.Error("Ошибка парсинга ID", zap.Error(err))
@@ -103,7 +105,7 @@ func (a *Autentificator) buildJWTString(ctx context.Context) (string, int, error
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(SecretKey))
+	tokenString, err := token.SignedString([]byte(a.SecretKey))
 	if err != nil {
 		return "", 0, err
 	}

@@ -13,6 +13,7 @@ type Config struct {
 	FileBase     FileBase
 	DataBase     string
 	LogLevel     string
+	SecretKey    string
 }
 
 type Builder interface {
@@ -100,6 +101,9 @@ func parseEnv(conf *Config) error {
 	}
 	if envDBAddres := os.Getenv("DATABASE_DSN"); envDBAddres != "" {
 		conf.DataBase = envDBAddres
+	}
+	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
+		conf.SecretKey = secretKey
 	}
 	return nil
 }

@@ -49,7 +49,7 @@ func Migrations(dsn string) error {
 		return err
 	}
 
-	return goose.Up(db, "./")
+	return goose.Up(db, "./migration/")
 }
 
 func (p *Postgre) Ping(ctx context.Context) error {
@@ -73,7 +73,7 @@ func (p *Postgre) AddURL(ctx context.Context, urlData URLData) error {
 	c, cancel := context.WithTimeout(ctx, time.Second*1)
 	defer cancel()
 
-	rows, err := p.db.Query(c, `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`, urlData.ID, urlData.URL, deleted, id)
+	rows, err := p.db.Query(c, `INSERT INTO url (id, url, is_deleted, user_id) VALUES ($1, $2, $3, $4)`, urlData.ID, urlData.URL, deleted, id)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (p *Postgre) WriteBatchURL(ctx context.Context, b *ReqBatchURLs) (*ReqBatch
 
 		p.Log.Debug("Пытаемся добавить URL в БД", zap.String("url", v.URL), zap.String("id", v.ID))
 
-		_, err := tx.Exec(ctx, `INSERT INTO urls (id, url, deleted, userID) VALUES ($1, $2, $3, $4)`, v.ID, v.URL, deleted, id)
+		_, err := tx.Exec(ctx, `INSERT INTO url (id, url, is_deleted, user_id) VALUES ($1, $2, $3, $4)`, v.ID, v.URL, deleted, id)
 
 		if err != nil {
 			if err := tx.Rollback(ctx); err != nil {
@@ -132,10 +132,10 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 
 	var err error
 	if userID == 0 {
-		insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1", t)
+		insertType := fmt.Sprintf("SELECT id, url, is_deleted FROM url WHERE %v = $1", t)
 		err = p.db.QueryRow(c, insertType, v).Scan(&returnID, &returnURL, &deleted)
 	} else {
-		insertType := fmt.Sprintf("SELECT id, url, deleted FROM urls WHERE %v = $1 AND userid = $2", t)
+		insertType := fmt.Sprintf("SELECT id, url, is_deleted FROM url WHERE %v = $1 AND userid = $2", t)
 		err = p.db.QueryRow(c, insertType, v, userID).Scan(&returnID, &returnURL, &deleted)
 	}
 
@@ -161,7 +161,7 @@ func (p *Postgre) CheckBatchURL(ctx context.Context, urls *ReqBatchURLs) (*ReqBa
 	val, queryInsert := p.getQueryInsert(ctx, urls)
 
 	// Проверка существования урлов в базе данных
-	query := "SELECT url, id, deleted FROM urls WHERE url IN (" + queryInsert + ")"
+	query := "SELECT url, id, is_deleted FROM url WHERE url IN (" + queryInsert + ")"
 	rows, err := p.db.Query(c, query, val...)
 	if err != nil {
 		p.Log.Error("Error querying database:", zap.Error(err))
@@ -231,7 +231,7 @@ func (p *Postgre) RemoveURL(ctx context.Context, data []URLData) error {
 	}()
 
 	for _, url := range data {
-		_, err := tx.Exec(c, "UPDATE urls SET deleted = $1 WHERE id = $2", remove, url.ID)
+		_, err := tx.Exec(c, "UPDATE url SET is_deleted = $1 WHERE id = $2", remove, url.ID)
 		if err != nil {
 			return err
 		}
@@ -245,7 +245,7 @@ func (p *Postgre) GetNewUser(ctx context.Context) (int, error) {
 
 	p.Log.Debug("Добавляем пользователя в базу и получаем ID")
 	var id int
-	err := p.db.QueryRow(c, `INSERT INTO users DEFAULT VALUES RETURNING id`).Scan(&id)
+	err := p.db.QueryRow(c, `INSERT INTO user DEFAULT VALUES RETURNING id`).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -259,7 +259,7 @@ func (p *Postgre) GetURLsByUser(ctx context.Context, id int) (UserURLs, error) {
 	p.Log.Debug("Получаем все URL пользователя", zap.Int("id", id))
 
 	urls := UserURLs{}
-	rows, err := p.db.Query(c, "SELECT url, id, deleted FROM urls WHERE userID = $1", id)
+	rows, err := p.db.Query(c, "SELECT url, id, is_deleted FROM url WHERE user_id = $1", id)
 	if err != nil {
 		return nil, err
 	}
