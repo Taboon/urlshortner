@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Taboon/urlshortner/internal/entity"
@@ -127,129 +126,9 @@ func (s *Server) removeURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	doneCh := make(chan struct{})
-
-	inputCh := s.generator(doneCh, requestBody)
-	channels := s.fanOut(r.Context(), doneCh, inputCh)
-	addResultCh := s.fanIn(doneCh, channels...)
-	s.remover(r.Context(), doneCh, addResultCh)
+	s.P.RemoveURLs(requestBody, r)
 
 	w.WriteHeader(http.StatusAccepted)
-}
-
-func (s *Server) generator(doneCh chan struct{}, input []string) chan string {
-	genChan := make(chan string)
-	s.Log.Debug("Открыли канал genChan")
-	go func() {
-		defer func() {
-			s.Log.Debug("Закрыли канал genChan")
-			close(genChan)
-		}()
-		fmt.Println(input)
-
-		for _, data := range input {
-			select {
-			case <-doneCh:
-				s.Log.Debug("Получили DONE")
-				return
-			case genChan <- data:
-				s.Log.Debug("Отправили в канал genChan", zap.String("data", data))
-			}
-		}
-	}()
-
-	return genChan
-}
-
-func (s *Server) remover(ctx context.Context, doneCh chan struct{}, idToRemove chan storage.URLData) {
-	s.Log.Debug("remover начал работу")
-	go func() {
-		defer func() {
-			close(doneCh)
-			s.Log.Debug("Закрыли канал DONE")
-		}()
-
-		var batch = make([]storage.URLData, 0)
-
-		for data := range idToRemove {
-			batch = append(batch, data)
-			s.Log.Debug("Добавили в batch", zap.String("id", data.ID))
-		}
-
-		s.Log.Debug("Подготовили batch", zap.Any("batch", batch))
-		err := s.P.Repo.RemoveURL(ctx, batch)
-		if err != nil {
-			s.Log.Error("Ошибка удаления URL", zap.Error(err))
-		}
-	}()
-}
-
-func (s *Server) fanOut(ctx context.Context, doneCh chan struct{}, inputCh chan string) []chan storage.URLData {
-	numWorkers := 5
-	channels := make([]chan storage.URLData, numWorkers)
-	for i := 0; i < numWorkers; i++ {
-		addResultCh := s.checkID(ctx, doneCh, inputCh)
-		channels[i] = addResultCh
-	}
-	return channels
-}
-
-func (s *Server) checkID(ctx context.Context, doneCh chan struct{}, in chan string) chan storage.URLData {
-	checkIDout := make(chan storage.URLData)
-	go func() {
-		defer func() {
-			s.Log.Debug("Закрыли канал checkIDout")
-			close(checkIDout)
-		}()
-
-		for data := range in {
-			url, ok, err := s.P.Repo.CheckID(ctx, data)
-			if err != nil {
-				s.Log.Error("ошибка при проверке ID", zap.Error(err))
-			}
-			s.Log.Debug("Получили инфу по id", zap.String("id", data), zap.Bool("ok", ok), zap.Any("url", url))
-			if ok {
-				select {
-				case <-doneCh:
-					return
-				case checkIDout <- url:
-					s.Log.Debug("Отправили инфу в канал checkIDout")
-				}
-			}
-		}
-	}()
-	return checkIDout
-}
-
-func (s *Server) fanIn(doneCh chan struct{}, resultChs ...chan storage.URLData) chan storage.URLData {
-	finalCh := make(chan storage.URLData)
-
-	var wg sync.WaitGroup
-
-	for _, ch := range resultChs {
-		chClosure := ch
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for data := range chClosure {
-				select {
-				case <-doneCh:
-					return
-				case finalCh <- data:
-					s.Log.Debug("Отправляем в канал fanIn", zap.String("id", data.ID))
-				}
-			}
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(finalCh)
-		s.Log.Debug("Закрыли канал finalCh")
-	}()
-
-	return finalCh
 }
 
 func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter {
