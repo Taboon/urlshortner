@@ -30,8 +30,6 @@ type configBuilder struct {
 	config *Config
 }
 
-const baseFilePath = "./tmp/short-url-db.json"
-
 func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
 	c.config.LocalAddress.Port = port
@@ -105,6 +103,9 @@ func parseEnv(conf *Config) error {
 	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
 		conf.SecretKey = secretKey
 	}
+	if fileBase := os.Getenv("TMP_FILE_BASE"); fileBase != "" {
+		conf.SecretKey = fileBase
+	}
 	return nil
 }
 
@@ -122,7 +123,6 @@ func SetConfig() *Config {
 	configBuilder := NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase(baseFilePath)
 	configBuilder.SetLogger("Debug")
 	configBuilder.ParseEnv()
 	configBuilder.ParseFlag()
