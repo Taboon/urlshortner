@@ -41,7 +41,7 @@ func initServer() (Server, error) {
 	urlProcessor := usecase.URLProcessor{
 		Repo:            stor,
 		Log:             l,
-		Authentificator: auth.NewAuthentificator(l, stor, conf.BaseURL),
+		Authentificator: auth.NewAuthentificator(l, stor, conf.BaseURL, "key123"),
 	}
 	// инициализируем сервер
 	s := Server{
