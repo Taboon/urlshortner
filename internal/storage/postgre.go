@@ -135,7 +135,7 @@ func (p *Postgre) check(ctx context.Context, t string, v string) (URLData, bool,
 		insertType := fmt.Sprintf("SELECT id, url, is_deleted FROM url WHERE %v = $1", t)
 		err = p.db.QueryRow(c, insertType, v).Scan(&returnID, &returnURL, &deleted)
 	} else {
-		insertType := fmt.Sprintf("SELECT id, url, is_deleted FROM url WHERE %v = $1 AND userid = $2", t)
+		insertType := fmt.Sprintf("SELECT id, url, is_deleted FROM url WHERE %v = $1 AND user_id = $2", t)
 		err = p.db.QueryRow(c, insertType, v, userID).Scan(&returnID, &returnURL, &deleted)
 	}
 
@@ -245,7 +245,7 @@ func (p *Postgre) GetNewUser(ctx context.Context) (int, error) {
 
 	p.Log.Debug("Добавляем пользователя в базу и получаем ID")
 	var id int
-	err := p.db.QueryRow(c, `INSERT INTO user DEFAULT VALUES RETURNING id`).Scan(&id)
+	err := p.db.QueryRow(c, `INSERT INTO users DEFAULT VALUES RETURNING id`).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
