@@ -2,20 +2,23 @@ package main
 
 import (
 	"context"
+	"github.com/Taboon/urlshortner/internal/server/auth"
+	"github.com/Taboon/urlshortner/internal/storage"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 
 	"github.com/Taboon/urlshortner/internal/config"
 	"github.com/Taboon/urlshortner/internal/domain/usecase"
 	"github.com/Taboon/urlshortner/internal/logger"
 	"github.com/Taboon/urlshortner/internal/server"
-	"github.com/Taboon/urlshortner/internal/storage"
-	pgx "github.com/jackc/pgx/v5"
+
+	_ "github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
 func main() { //nolint:funlen
 	conf := config.SetConfig()
-
+	ctx := context.Background()
 	// инициализируем логгер
 	l, err := logger.Initialize(*conf)
 	if err != nil {
@@ -27,34 +30,34 @@ func main() { //nolint:funlen
 
 	switch {
 	case conf.DataBase != "":
-		db, s := storage.SetPostgres(conf, l)
+		db, s := storage.SetPostgres(ctx, conf, l)
 		stor = s
-		defer func(db *pgx.Conn, ctx context.Context) {
-			err := db.Close(ctx)
+		defer func(db *pgxpool.Pool) {
+			db.Close()
+		}(db)
+	default:
+		internalStor := storage.NewMemoryStorage(l)
+
+		l.Info("Используем память приложения для хранения")
+
+		// инициализируем бекап и загружаем из него данные
+		if conf.FileBase.File != "" {
+			l.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
+			backuper := storage.NewFileStorage(conf.FileBase.File, l)
+			err := backuper.Get(internalStor)
 			if err != nil {
 				panic(err)
 			}
-		}(db, context.Background())
-	default:
-		stor = storage.NewMemoryStorage(l)
-		l.Info("Используем память приложения для хранения")
+			internalStor.Backuper = backuper
+		}
+		stor = internalStor
 	}
 
 	// инициализируем URL процессор
 	urlProcessor := usecase.URLProcessor{
-		Repo: stor,
-		Log:  l,
-	}
-
-	// инициализируем бекап и загружаем из него данные
-	if conf.FileBase.File != "" {
-		l.Info("Используем бекап файл", zap.String("file", conf.FileBase.File))
-		backuper := storage.NewFileStorage(conf.FileBase.File, l)
-		err := backuper.Get(&stor)
-		if err != nil {
-			panic(err)
-		}
-		urlProcessor.Backup = backuper
+		Repo:            stor,
+		Log:             l,
+		Authentificator: auth.NewAuthentificator(l, stor, conf.BaseURL, conf.SecretKey),
 	}
 
 	// инициализируем сервер

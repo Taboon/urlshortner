@@ -23,7 +23,7 @@ type Server struct {
 func (s *Server) Run(la config.Address) error {
 	srv := &http.Server{
 		Addr:         la.String(),
-		Handler:      s.URLRouter(), // ваш обработчик запросов
+		Handler:      s.URLRouter(),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
@@ -43,9 +43,10 @@ func (s *Server) URLRouter() chi.Router {
 
 	r.Get("/ping", s.Log.RequestLogger(s.ping))
 	r.Get("/{id}", s.Log.RequestLogger(gzip.MiddlewareGzip(s.getURL)))
-	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortURL)))
-	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenJSON)))
-	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.shortenBatchJSON)))
-
+	r.Get("/api/user/urls", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.getUserURLs))))
+	r.Post("/", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortURL))))
+	r.Post("/api/shorten", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortenJSON))))
+	r.Post("/api/shorten/batch", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.shortenBatchJSON))))
+	r.Delete("/api/user/urls", s.Log.RequestLogger(gzip.MiddlewareGzip(s.P.Authentificator.MiddlewareCookies(s.removeURLs))))
 	return r
 }

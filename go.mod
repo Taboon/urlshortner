@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/go-chi/chi/v5 v5.0.12
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/pressly/goose v2.7.0+incompatible
 	github.com/stretchr/testify v1.8.4

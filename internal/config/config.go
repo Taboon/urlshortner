@@ -13,6 +13,7 @@ type Config struct {
 	FileBase     FileBase
 	DataBase     string
 	LogLevel     string
+	SecretKey    string
 }
 
 type Builder interface {
@@ -28,8 +29,6 @@ type Builder interface {
 type configBuilder struct {
 	config *Config
 }
-
-const baseFilePath = "/tmp/short-url-db.json"
 
 func (c *configBuilder) SetLocalAddress(ip string, port int) Builder {
 	c.config.LocalAddress.IP = ip
@@ -101,6 +100,15 @@ func parseEnv(conf *Config) error {
 	if envDBAddres := os.Getenv("DATABASE_DSN"); envDBAddres != "" {
 		conf.DataBase = envDBAddres
 	}
+	if secretKey := os.Getenv("SECRET_KEY"); secretKey != "" {
+		conf.SecretKey = secretKey
+	}
+	if fileBase := os.Getenv("TMP_FILE_BASE"); fileBase != "" {
+		err := conf.FileBase.Set(fileBase)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -109,7 +117,7 @@ func parseFlags(conf *Config) error {
 	flag.StringVar(&conf.DataBase, "d", "", "data base url")
 	flag.Var(&conf.LocalAddress, "a", "address to start server")
 	flag.Var(&conf.FileBase, "f", "file base path")
-	flag.StringVar(&conf.LogLevel, "log", "Info", "loglevel (Info, Debug, Error)")
+	flag.StringVar(&conf.LogLevel, "log", "Debug", "loglevel (Info, Debug, Error)")
 	flag.Parse()
 	return nil
 }
@@ -118,7 +126,6 @@ func SetConfig() *Config {
 	configBuilder := NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase(baseFilePath)
 	configBuilder.SetLogger("Debug")
 	configBuilder.ParseEnv()
 	configBuilder.ParseFlag()

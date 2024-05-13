@@ -1,13 +1,16 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Taboon/urlshortner/internal/entity"
 	"github.com/Taboon/urlshortner/internal/storage"
@@ -16,6 +19,8 @@ import (
 type RequestJSON struct {
 	URL string `json:"url"`
 }
+
+type RequestJSONRemoveURLs []string
 
 type Response struct {
 	Result string
@@ -30,9 +35,15 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	s.Log.Debug("Получаем ID из пути", zap.String("path", path))
 	path = strings.Trim(path, "/")
 
-	v, err := s.P.Get(r.Context(), path)
+	ctx := context.WithValue(r.Context(), storage.UserID, 0)
+	v, err := s.P.Get(ctx, path)
 	if err != nil {
 		http.Error(w, "Не удалось получить URL", http.StatusBadRequest)
+		return
+	}
+
+	if v.Deleted {
+		http.Error(w, "URL удален", http.StatusGone)
 		return
 	}
 
@@ -41,8 +52,8 @@ func (s *Server) getURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
-	err := s.P.Ping()
+func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
+	err := s.P.Repo.Ping(r.Context())
 	if err != nil {
 		http.Error(w, "Ошибка при подключении к базе данных", http.StatusInternalServerError)
 	}
@@ -51,6 +62,7 @@ func (s *Server) ping(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) shortURL(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Second * 1)
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
@@ -79,8 +91,9 @@ func (s *Server) shortURL(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("shortenJSON")
+	reqJSON := RequestJSON{}
 	// получаем JSON
-	requestBody, err := s.getURLJSON(w, r)
+	requestBody, err := getURLJSON(w, r, reqJSON)
 	if err != nil {
 		http.Error(w, "Ошибка получения JSON: "+err.Error(), http.StatusBadRequest)
 		return
@@ -103,6 +116,21 @@ func (s *Server) shortenJSON(w http.ResponseWriter, r *http.Request) {
 	s.writeResponse(s.setHeader(w, err), response)
 }
 
+func (s *Server) removeURLs(w http.ResponseWriter, r *http.Request) {
+	s.Log.Info("Получили запрос на удаление ссылок")
+	var reqJSON []string
+	// получаем JSON
+	requestBody, err := getURLJSON(w, r, reqJSON)
+	if err != nil {
+		http.Error(w, "Ошибка получения JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	s.P.RemoveURLs(requestBody, r)
+
+	w.WriteHeader(http.StatusAccepted)
+}
+
 func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter {
 	switch {
 	case errors.Is(err, entity.ErrURLExist):
@@ -116,56 +144,51 @@ func (s *Server) setHeader(w http.ResponseWriter, err error) http.ResponseWriter
 	return w
 }
 
-func (s *Server) getURLJSON(w http.ResponseWriter, r *http.Request) (RequestJSON, error) {
-	var requestBody = RequestJSON{}
-
+func getURLJSON[T any](w http.ResponseWriter, r *http.Request, structure T) (T, error) {
 	req, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, err
 	}
 
 	if !json.Valid(req) {
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, entity.ErrJSONInvalid
 	}
 
-	err = json.Unmarshal(req, &requestBody)
+	err = json.Unmarshal(req, &structure)
 	if err != nil {
 		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return RequestJSON{}, nil
+		return structure, err
 	}
 
-	if requestBody.URL == "" {
-		http.Error(w, "Пустой URL", http.StatusBadRequest)
-		return RequestJSON{}, nil
-	}
-	return requestBody, err
+	return structure, err
 }
 
 func (s *Server) shortenBatchJSON(w http.ResponseWriter, r *http.Request) {
 	s.Log.Info("shortenBatchJSON")
 	// получаем все url в json
-	urls, err := getReqBatchJSON(w, r)
+	var reqBatchJSON storage.ReqBatchURLs
+	urls, err := getURLJSON(w, r, reqBatchJSON)
 	if err != nil {
 		s.Log.Error("Ошибка получения JSON", zap.Error(err))
 		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
 		return
 	}
-	if len(*urls) == 0 {
+	if len(urls) == 0 {
 		http.Error(w, "Пустой JSON", http.StatusBadRequest)
 		return
 	}
 
 	// пытаемся сохранить
-	urls, err = s.P.BatchURLSave(r.Context(), urls)
+	u, err := s.P.BatchURLSave(r.Context(), &urls)
 	if err != nil {
 		http.Error(w, "Не удалось сохранить массив URL: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// пишем результат в JSON
-	respBathJSON := s.getRespBatchJSON(urls)
+	respBathJSON := s.getRespBatchJSON(u)
 
 	// отправляем ответ
 	w.Header().Set("Content-Type", "application/json")
@@ -179,7 +202,6 @@ func (s *Server) getRespBatchJSON(urls *storage.ReqBatchURLs) storage.RespBatchU
 
 	for _, v := range *urls {
 		respURL.ID = v.ExternalID
-
 		// в кейсах можно добавить обработку на каждый тип ошибки
 		switch {
 		case v.Err != nil:
@@ -207,24 +229,30 @@ func (s *Server) writeResponse(w http.ResponseWriter, r interface{}) {
 	}
 }
 
-func getReqBatchJSON(w http.ResponseWriter, r *http.Request) (*storage.ReqBatchURLs, error) {
-	var reqBatchJSON storage.ReqBatchURLs
-
-	req, err := io.ReadAll(r.Body)
+func (s *Server) getUserURLs(w http.ResponseWriter, r *http.Request) {
+	id := r.Context().Value(storage.UserID).(int)
+	urls, err := s.P.Repo.GetURLsByUser(r.Context(), id)
 	if err != nil {
-		http.Error(w, "Не удалось прочитать запрос", http.StatusBadRequest)
-		return nil, err
+		if !errors.Is(err, pgx.ErrNoRows) { //nolint: typecheck
+			http.Error(w, "Нет доступных URL: "+err.Error(), http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, "Не удалось получить все URL пользователя: "+err.Error(), http.StatusBadRequest)
+		return
 	}
+	if len(urls) > 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Println("что ", urls)
+		s.writeResponse(w, s.setBaseURL(&urls))
+		return
+	}
+	w.WriteHeader(http.StatusUnauthorized)
+}
 
-	if !json.Valid(req) {
-		http.Error(w, "Не валидный JSON", http.StatusBadRequest)
-		return nil, entity.ErrJSONInvalid
+func (s *Server) setBaseURL(ls *storage.UserURLs) *storage.UserURLs {
+	for i, v := range *ls {
+		(*ls)[i].ID = fmt.Sprintf("%s%s/%s", httpPrefix, s.BaseURL, v.ID)
 	}
-
-	err = json.Unmarshal(req, &reqBatchJSON)
-	if err != nil {
-		http.Error(w, "Не удалось сериализовать JSON: "+err.Error(), http.StatusBadRequest)
-		return nil, err
-	}
-	return &reqBatchJSON, nil
+	return ls
 }

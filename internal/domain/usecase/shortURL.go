@@ -33,8 +33,6 @@ func (u *URLProcessor) URLValidator(url string) (string, error) {
 }
 
 func (u *URLProcessor) SaveURL(ctx context.Context, url string) (string, error) {
-	u.Log.Debug("Сохраняем URL")
-
 	data, ok, err := u.Repo.CheckURL(ctx, url)
 	if err != nil {
 		return "", err
@@ -49,12 +47,6 @@ func (u *URLProcessor) SaveURL(ctx context.Context, url string) (string, error) 
 
 	if err := u.Repo.AddURL(ctx, urlObj); err != nil {
 		return "", err
-	}
-
-	if u.Backup != nil {
-		if err := u.Backup.AddURL(ctx, urlObj); err != nil {
-			u.Log.Error("Ошибка сохранения бекапа")
-		}
 	}
 
 	return id, nil
@@ -78,13 +70,6 @@ func (u *URLProcessor) BatchURLSave(ctx context.Context, b *storage.ReqBatchURLs
 	b, err = u.Repo.WriteBatchURL(ctx, b)
 	if err != nil {
 		return nil, err
-	}
-
-	if u.Backup != nil {
-		_, err = u.Backup.WriteBatchURL(ctx, b)
-		if err != nil {
-			u.Log.Error("Ошибка сохранения бекапа")
-		}
 	}
 
 	return b, nil

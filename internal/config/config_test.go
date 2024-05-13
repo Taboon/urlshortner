@@ -22,7 +22,6 @@ func TestBuildConfig(t *testing.T) {
 	configBuilder := NewConfigBuilder()
 	configBuilder.SetLocalAddress("127.0.0.1", 8080)
 	configBuilder.SetBaseURL("127.0.0.1", 8080)
-	configBuilder.SetFileBase(baseFilePath)
 	configBuilder.SetLogger("Info")
 	configBuilder.ParseEnv()
 	configBuilder.ParseFlag()
