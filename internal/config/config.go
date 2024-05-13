@@ -104,7 +104,10 @@ func parseEnv(conf *Config) error {
 		conf.SecretKey = secretKey
 	}
 	if fileBase := os.Getenv("TMP_FILE_BASE"); fileBase != "" {
-		conf.SecretKey = fileBase
+		err := conf.FileBase.Set(fileBase)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
